@@ -140,3 +140,32 @@ The current map comes from `scripts/compose5.py`.
 - The rocket's smoke trail is redrawn over the hills so it stays continuous.
 
 **Check:** `scripts/check_horizon.py` scans 40 units below the horizon across the land side for any dusk-sky-coloured pixel. Result: 0. The debug crop with a 1px magenta horizon guide is `horizon-check.png`. The route check still passes (0 of 1,174 samples on water off the bridge).
+
+# v6 (tidy-up: one water colour, clean trees and land)
+
+The current map comes from `scripts/compose6.py`, using the same Monge art as v5 (map-v5). Every change is a vector edit of the Monge trace or of the overlay; no new image pass.
+
+**James's review:** some trees were blue like the ocean, and the ocean and the bay were different colours.
+
+**Why:**
+- The trace's darkest class (#0f333d) was recoloured to TEAL for the ocean, but the same class held the shadow side of the painted conifers. So 18 small tree shapes turned ocean blue.
+- The trace's background is the bay. The v1 recolour sent it to #3c6f79, a lighter teal than the ocean, and the strait was a gradient between the two.
+- The background also showed through 121 small holes on land as blue specks.
+- On the sun's glitter path, the trace turned the red-on-navy glints into olive and khaki shapes. Under the haze they read as grey streaks on the sea.
+
+**Fix:**
+- **One water colour:** the ocean, the bay, Tomales Bay and the Golden Gate strait are all TEAL (#1d4b57).
+- **Trees:** small TEAL shapes on land become deep forest green (#2f3a22). The art's own water bits at the Golden Gate stay TEAL.
+- **Specks:** `scripts/specks.py` renders the terrain with water in magenta and labels the connected water regions. Only one large region is real water; the other 121 are specks. Each speck is patched with the land colour in a ring around it.
+- **Glints:** `scripts/glints.py` samples the source raster under each traced shape near the sun. A shape over the sea becomes a red glint (#dd4326) or open water, depending on what the raster shows there.
+- **Haze:** the haze is now kept off all open water near the horizon, glints included. Before, it was kept off only the scanned coastline, which missed the strip by the beach.
+- **Bathymetry:** the contours now fade out above the whole title block, not just its left part, so no broken contour ends cross the type.
+
+**Rebuild:**
+1. Run `python3 scripts/compose6.py analyse`.
+2. Render `sources/terrain-analyse-v6.svg` at 2000×2500.
+3. Run `python3 scripts/specks.py that.png`.
+4. Run `python3 scripts/compose6.py`.
+5. Run `scripts/render.sh map.svg map.png 1600 2000`.
+
+`sources/specks-v6.json` and `sources/glints-v6.json` are committed, so step 4 alone rebuilds the SVG.
