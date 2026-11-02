@@ -1,4 +1,5 @@
 import type { Profile } from "./types";
+import { EXTRA_GEAR } from "./trip";
 
 export interface PackItem {
   id: string;
@@ -56,10 +57,10 @@ export function packingList(p: Profile): PackItem[] {
   const X = "Extras";
   if (p.hasCar) add(X, "car-ready", "Car fuelled up and trunk cleared");
   for (const [key, n] of Object.entries(p.extras)) {
-    if (n > 0) add(X, `extra-${key}`, `Spare ${key.replace(/([A-Z])/g, " $1").toLowerCase()} ×${n} for the group`);
+    const label = EXTRA_GEAR.find((g) => g.key === key)?.label.toLowerCase() ?? key;
+    if (n > 0) add(X, `extra-${key}`, `Spare ${label} for the group (${n})`);
   }
   if (p.bringing.trim()) add(X, "bringing", `Your contribution: ${p.bringing.trim()}`);
-  add(X, "chunder", "A sense of adventure", "Non-negotiable.");
 
   return items;
 }

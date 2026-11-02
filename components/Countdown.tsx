@@ -9,19 +9,16 @@ export default function Countdown({ to }: { to: string }) {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  if (now === null) return <div className="countdown" aria-hidden />;
-  const diff = Math.max(0, target - now);
-  if (diff === 0) return <p className="tag">It has begun. 🏕️</p>;
-  const d = Math.floor(diff / 86400000);
-  const h = Math.floor((diff / 3600000) % 24);
-  const m = Math.floor((diff / 60000) % 60);
-  const s = Math.floor((diff / 1000) % 60);
+  const diff = now === null ? null : Math.max(0, target - now);
+  const parts = diff === null
+    ? ["–", "–", "–", "–"]
+    : [Math.floor(diff / 86400000), Math.floor((diff / 3600000) % 24), Math.floor((diff / 60000) % 60), Math.floor((diff / 1000) % 60)].map((n) => String(n).padStart(2, "0"));
+  if (diff === 0) return <div className="count"><div><b>WE&apos;RE HERE</b></div></div>;
   return (
-    <div className="countdown" role="timer" aria-label={`${d} days ${h} hours until departure`}>
-      <div><b>{d}</b><span>days</span></div>
-      <div><b>{h}</b><span>hours</span></div>
-      <div><b>{m}</b><span>min</span></div>
-      <div><b>{s}</b><span>sec</span></div>
+    <div className="count" role="timer" aria-label="Time until departure">
+      {["Days", "Hrs", "Min", "Sec"].map((l, i) => (
+        <div key={l}><b>{parts[i]}</b><span>{l}</span></div>
+      ))}
     </div>
   );
 }

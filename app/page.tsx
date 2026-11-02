@@ -3,140 +3,133 @@ import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { GROUP_GEAR, ITINERARY, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
-import TopBar from "@/components/TopBar";
-import Countdown from "@/components/Countdown";
-import MapArt from "@/components/MapArt";
-import Avatar from "@/components/Avatar";
+import Masthead from "@/components/Masthead";
+import TabBar from "@/components/TabBar";
 
 export const dynamic = "force-dynamic";
 
-function firstName(n: string) {
-  return n.split(/\s+/)[0] || n;
-}
+const first = (n: string) => n.split(/\s+/)[0] || n;
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { profile: me, admin } = await requireOnboarded();
   const { welcome } = await searchParams;
   const everyone = (await db.listProfiles()).filter((p) => p.onboardedAt).sort((a, b) => a.name.localeCompare(b.name));
 
-  const myDriver = me.hasCar ? me : everyone.find((p) => p.phone === me.rideWith && p.hasCar);
-  const carmates = myDriver ? everyone.filter((p) => p.rideWith === myDriver.phone && p.phone !== myDriver.phone) : [];
+  const driver = me.hasCar ? me : everyone.find((p) => p.phone === me.rideWith && p.hasCar);
+  const carmates = driver ? everyone.filter((p) => p.rideWith === driver.phone && p.phone !== driver.phone) : [];
   const items = packingList(me);
-  const packedCount = items.filter((i) => me.packed.includes(i.id)).length;
+  const packed = items.filter((i) => me.packed.includes(i.id)).length;
   const cars = everyone.filter((p) => p.hasCar).length;
+  const owes = TRIP.foodBudget + (me.optInBooze ? TRIP.boozeBudget : 0);
 
   return (
     <>
-      <TopBar admin={admin} />
-      <section className="hero">
-        <div className="wrap">
-          <div className="eyebrow">Dillon Beach · Nov 13–15, 2026</div>
-          <h1>Chunderdome <span className="numeral">II</span></h1>
-          <p className="tag">{TRIP.tagline}</p>
-          <Countdown to={TRIP.departISO} />
-          <MapArt />
-        </div>
-      </section>
+      <main className="page">
+        <Masthead />
 
-      <main className="wrap">
         {welcome && (
-          <div className="card" style={{ marginTop: 24, background: "#fff3ec", borderColor: "#f3c7b2" }}>
-            <h3>You&apos;re in, {firstName(me.name)}. 🔥</h3>
-            <p style={{ margin: 0 }}>Next: check out <Link href="/packing">your packing list</Link>. You can change your answers any time under <Link href="/me">My info</Link>.</p>
-          </div>
+          <section className="block" style={{ borderTop: 0 }}>
+            <div className="note red">
+              <div className="d d-m">You&apos;re in, {first(me.name)}.</div>
+              <p style={{ margin: "8px 0 0" }}>Your packing list is ready. You can change any answer later under Me.</p>
+            </div>
+          </section>
         )}
 
-        <section className="section grid">
-          <div className="card">
-            <div className="kicker">Your ride</div>
-            {me.travel === "late" ? (
-              <p>You&apos;re arriving late. Text an admin when you&apos;re on your way.</p>
-            ) : me.travel === "own-way" ? (
-              <p>You&apos;re making your own way. Aim to arrive around {TRIP.arriveLabel}.</p>
-            ) : myDriver ? (
-              <>
-                <h3>{myDriver.phone === me.phone ? "You're driving" : `${firstName(myDriver.name)}'s car`}</h3>
-                <p className="muted">Leaves {TRIP.departLabel}{myDriver.phone !== me.phone && <> · <a href={`sms:${myDriver.phone}`}>text {firstName(myDriver.name)}</a></>}</p>
-                {carmates.length ? (
-                  <div className="crew">{carmates.map((p) => <span className="pill" key={p.phone}>{p.name}</span>)}</div>
-                ) : (
-                  <p className="muted">{myDriver.phone === me.phone ? "Passengers will show up here once they're assigned." : "Just you so far."}</p>
-                )}
-              </>
-            ) : (
-              <><h3>Being sorted</h3><p className="muted">We&apos;ll match you with a car from near {me.area.replace(/^SF · /, "")}. Check back soon.</p></>
-            )}
-          </div>
-
-          <div className="card">
-            <div className="kicker">Packing</div>
-            <h3>{packedCount} of {items.length} packed</h3>
-            <div className="progress" style={{ margin: "10px 0 14px" }}><div style={{ width: `${(packedCount / items.length) * 100}%` }} /></div>
-            <Link className="btn small" href="/packing">Open my list</Link>
-          </div>
-
-          <div className="card">
-            <div className="kicker">The crew</div>
-            <h3>{everyone.length} signed up · {cars} cars</h3>
-            <div className="crew" style={{ marginTop: 10 }}>
-              {everyone.map((p) => <Avatar key={p.phone} name={p.name} />)}
+        <section className="block" style={welcome ? undefined : { borderTop: 0 }}>
+          <div className="block-head"><h2 className="d d-m">Your ride</h2><span className="mono faint">Leaves 6:00 PM</span></div>
+          {me.travel === "late" ? (
+            <p>You&apos;re arriving late. Text an organiser when you&apos;re on the road.</p>
+          ) : me.travel === "own-way" ? (
+            <p>You&apos;re making your own way. Aim for Dillon Beach around 7:30 PM Friday.</p>
+          ) : driver ? (
+            <div className="car">
+              <div className="row spread">
+                <strong className="d d-s">{driver.phone === me.phone ? "You're driving" : `${first(driver.name)}'s car`}</strong>
+                {driver.phone !== me.phone && <a className="btn sm ghost" href={`sms:${driver.phone}`}>Text</a>}
+              </div>
+              <div className="seats" aria-label={`${driver.carSeats} seats`}>
+                {Array.from({ length: driver.carSeats }).map((_, i) => (
+                  <span key={i} className={`seat ${i === 0 ? "driver" : i <= carmates.length ? "taken" : ""}`} />
+                ))}
+              </div>
+              {carmates.length
+                ? <p style={{ margin: 0 }}>{driver.phone !== me.phone && <>{driver.name} (driving), </>}{carmates.map((p) => p.name).join(", ")}</p>
+                : <p className="muted" style={{ margin: 0 }}>{driver.phone === me.phone ? "Riders will appear here once they're assigned." : "Just you so far."}</p>}
             </div>
+          ) : (
+            <div className="note">
+              <strong>Car to be decided.</strong>
+              <p className="muted" style={{ margin: "4px 0 0" }}>We&apos;ll match you with a driver near {me.area.replace(/^SF · /, "")}.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="block">
+          <div className="block-head"><h2 className="d d-m">Packing</h2><span className="mono">{packed}/{items.length}</span></div>
+          <div className="meter"><div style={{ width: `${(packed / items.length) * 100}%` }} /></div>
+          <Link className="btn block-btn" href="/packing" style={{ marginTop: 16 }}>Open my list</Link>
+        </section>
+
+        <section className="block">
+          <h2 className="d d-m" style={{ marginBottom: 16 }}>The plan</h2>
+          {ITINERARY.map((d) => (
+            <div className="day" key={d.day}>
+              <h3 className="d d-s">{d.day}</h3>
+              <ul className="tl">
+                {d.items.map((i) => (
+                  <li key={i.time + i.what} className={/6:00 pm|7:30|By 1/.test(i.time) ? "hot" : ""}>
+                    <span className="when mono faint">{i.time}</span>
+                    <span className="what">{i.what}</span>
+                    {i.note && <div className="muted" style={{ fontSize: 15 }}>{i.note}</div>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+
+        <section className="block">
+          <h2 className="d d-m" style={{ marginBottom: 12 }}>Food</h2>
+          <ul className="list">
+            {MEALS.map((m) => (
+              <li key={m.meal} className="row spread">
+                <span>{m.meal}</span>
+                <span className={`tag ${m.provided ? "solid" : ""}`}>{m.provided ? "Provided" : "On you"}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="note ink" style={{ marginTop: 16 }}>
+            <div className="mono" style={{ opacity: 0.7 }}>Your share</div>
+            <div className="d d-l" style={{ margin: "4px 0" }}>${owes}</div>
+            <div style={{ fontSize: 14, opacity: 0.85 }}>${TRIP.foodBudget} food{me.optInBooze ? ` + $${TRIP.boozeBudget} booze kitty` : ""}. Venmo request comes after the trip.</div>
           </div>
         </section>
 
-        <section className="section" style={{ paddingTop: 0 }}>
-          <div className="grid">
-            <div className="card">
-              <div className="kicker">The plan</div>
-              <h2>Three days of glory</h2>
-              {ITINERARY.map((d) => (
-                <div key={d.day} style={{ marginBottom: 14 }}>
-                  <h3 style={{ marginTop: 10 }}>{d.day}</h3>
-                  <ul className="timeline">
-                    {d.items.map((i) => (
-                      <li key={i.time + i.what}>
-                        <span className="t">{i.time}</span>
-                        <span>{i.what}{i.note && <><br /><small className="muted">{i.note}</small></>}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="stack">
-              <div className="card">
-                <div className="kicker">Food</div>
-                <h3>What&apos;s covered</h3>
-                <ul className="timeline">
-                  {MEALS.map((m) => (
-                    <li key={m.meal}><span className="t">{m.provided ? "Provided" : "On you"}</span><span>{m.meal}{m.note && <><br /><small className="muted">{m.note}</small></>}</span></li>
-                  ))}
-                </ul>
-                <p className="muted" style={{ marginTop: 10 }}>
-                  ${TRIP.foodBudget} each for food, plus ${TRIP.boozeBudget} for the booze kitty if you opted in. Venmo requests come after.
-                  You&apos;re in for <b>${TRIP.foodBudget + (me.optInBooze ? TRIP.boozeBudget : 0)}</b>.
-                </p>
-              </div>
-              <div className="card">
-                <div className="kicker">Group gear</div>
-                <h3>Already handled</h3>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>{GROUP_GEAR.map((g) => <li key={g}>{g}</li>)}</ul>
-              </div>
-              <div className="card">
-                <div className="kicker">Good to know</div>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>
-                  <li>Sunset Friday is {TRIP.sunsetFriday}, so we set up in the dark.</li>
-                  <li>Nights drop to the mid-40s °F with wind off the water.</li>
-                  <li>Cell signal is patchy past Tomales. Download offline maps.</li>
-                  <li>Leave no trace. We pack out everything we bring in.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <section className="block">
+          <div className="block-head"><h2 className="d d-m">The crew</h2><span className="mono faint">{everyone.length} in · {cars} cars</span></div>
+          <ol className="roster">
+            {everyone.map((p, i) => (
+              <li key={p.phone}><span>{String(i + 1).padStart(2, "0")}</span><span>{p.name}</span></li>
+            ))}
+          </ol>
         </section>
+
+        <section className="block">
+          <h2 className="d d-m" style={{ marginBottom: 12 }}>Field notes</h2>
+          <ul className="list">
+            <li>Sunset Friday is {TRIP.sunsetFriday}. We pitch the dome in the dark, so keep a headlamp in your pocket.</li>
+            <li>Nights drop to the mid-40s °F with wind off the water. Pack one more layer than you think.</li>
+            <li>Signal fades after Tomales. Download offline maps before you leave.</li>
+            <li>Leave no trace. Everything we bring in goes home with us.</li>
+          </ul>
+          <h3 className="mono faint" style={{ margin: "20px 0 8px" }}>Already handled by the group</h3>
+          <p style={{ margin: 0 }}>{GROUP_GEAR.join(" · ")}</p>
+        </section>
+
+        <p className="foot mono faint">Chunderdome II · Dillon Beach · MMXXVI</p>
       </main>
-      <footer className="footer">Chunderdome II · Dillon Beach · Nov 13–15, 2026</footer>
+      <TabBar admin={admin} />
     </>
   );
 }

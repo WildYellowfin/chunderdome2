@@ -10,7 +10,7 @@ export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" }) {
       <div className="field">
         <label htmlFor="phone">Your phone number</label>
         <input id="phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="(415) 555-0123" required />
-        <div className="hint">So we can text the crew. No spam, ever.</div>
+        <div className="hint">So we can text the crew about rides and timing.</div>
       </div>
       {mode === "trip-code" && (
         <div className="field">
@@ -18,7 +18,7 @@ export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" }) {
           <input id="tripCode" name="tripCode" type="text" autoComplete="off" placeholder="It's in the group chat" required />
         </div>
       )}
-      <button className="btn" disabled={pending}>{pending ? "One sec…" : mode === "sms" ? "Text me a code" : "Let me in"}</button>
+      <button className="btn block-btn" disabled={pending}>{pending ? "One sec" : mode === "sms" ? "Text me a code" : "Let me in"}</button>
     </form>
   );
 }
@@ -34,7 +34,7 @@ export function CodeForm({ phone }: { phone: string }) {
         <input id="code" name="code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={8} required autoFocus />
         <div className="hint">Sent to {phone}.</div>
       </div>
-      <button className="btn" disabled={pending}>{pending ? "Checking…" : "Sign in"}</button>
+      <button className="btn block-btn" disabled={pending}>{pending ? "Checking" : "Sign in"}</button>
     </form>
   );
 }

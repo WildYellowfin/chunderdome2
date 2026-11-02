@@ -10,33 +10,37 @@ export default function PackingList({ items, packed }: { items: PackItem[]; pack
     return n;
   });
   const [, start] = useTransition();
-  const doneCount = items.filter((i) => optimistic.has(i.id)).length;
-  const pct = Math.round((doneCount / Math.max(1, items.length)) * 100);
+  const done = items.filter((i) => optimistic.has(i.id)).length;
   const sections = [...new Set(items.map((i) => i.section))];
 
   return (
-    <div className="stack">
-      <div className="card">
-        <div className="row spread"><b>{doneCount} of {items.length} packed</b><span className="muted">{pct === 100 ? "Ready to chunder. 🎉" : `${pct}%`}</span></div>
-        <div className="progress" style={{ marginTop: 10 }}><div style={{ width: `${pct}%` }} /></div>
-      </div>
+    <>
+      <section className="block" style={{ borderTop: 0 }}>
+        <div className="block-head">
+          <h1 className="d d-l">{done === items.length ? "Packed." : "Pack list"}</h1>
+          <span className="d d-m">{done}<span className="faint">/{items.length}</span></span>
+        </div>
+        <div className="meter"><div style={{ width: `${(done / Math.max(1, items.length)) * 100}%` }} /></div>
+        <p className="muted" style={{ margin: "12px 0 0", fontSize: 15 }}>Built from your answers. Cold nights, damp mornings, sand in everything.</p>
+      </section>
       {sections.map((s) => (
-        <div className="card" key={s}>
-          <h3>{s}</h3>
+        <section className="block" key={s}>
+          <h2 className="d d-s" style={{ marginBottom: 4 }}>{s}</h2>
           {items.filter((i) => i.section === s).map((i) => {
-            const done = optimistic.has(i.id);
+            const on = optimistic.has(i.id);
             return (
-              <label key={i.id} className={`check ${done ? "done" : ""}`}>
-                <input type="checkbox" checked={done} onChange={(e) => {
+              <label key={i.id} className={`check ${on ? "done" : ""}`}>
+                <input type="checkbox" checked={on} onChange={(e) => {
                   const v = e.target.checked;
                   start(async () => { setOptimistic({ id: i.id, done: v }); await togglePacked(i.id, v); });
                 }} />
-                <span><span className="lbl">{i.label}</span>{i.hint && <><br /><small className="muted">{i.hint}</small></>}</span>
+                <span className="box" aria-hidden />
+                <span><span className="lbl" style={{ fontWeight: 600 }}>{i.label}</span>{i.hint && <span className="hint" style={{ display: "block", marginTop: 2 }}>{i.hint}</span>}</span>
               </label>
             );
           })}
-        </div>
+        </section>
       ))}
-    </div>
+    </>
   );
 }
