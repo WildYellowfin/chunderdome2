@@ -122,3 +122,21 @@ The current map comes from `scripts/compose4.py`, using the same Monge art as v3
 - **Strait:** widened slightly so water clearly joins ocean and bay on both sides of the deck.
 
 `verify_route.py` now checks the route plus the deck line: 0 of 1,174 samples are on water off the bridge, and 30 deck samples are over the strait.
+
+# v5 (one horizon)
+
+The current map comes from `scripts/compose5.py`.
+
+**James's review:** the water's horizon was a flat line, but the land beside it topped out lower, and the coast seemed to bend down away from it.
+
+**Why:** in the Monge art, the land's skyline right of the sea sat 3–17px below the sea horizon, with sky-coloured pixels below the horizon line. The vector sky followed that measured skyline, so it dipped below the sea horizon over the land.
+
+**Fix:**
+- There is one horizon at y=176.8 across the full width.
+- The sea runs flat to it as far as x=340, where the art's beach meets it.
+- From there, two bands of distant hazy hills sit on that line and rise above it, never dipping below: the palest (#e9d8ae) rises 4–18 units and a nearer one (#dcc591) up to 7. The haze layer pales them further.
+- The coast now runs up into the far hills at the horizon.
+- The sky stops at the hill crest.
+- The rocket's smoke trail is redrawn over the hills so it stays continuous.
+
+**Check:** `scripts/check_horizon.py` scans 40 units below the horizon across the land side for any dusk-sky-coloured pixel. Result: 0. The debug crop with a 1px magenta horizon guide is `horizon-check.png`. The route check still passes (0 of 1,174 samples on water off the bridge).
