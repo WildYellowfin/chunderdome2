@@ -175,6 +175,7 @@ export const BRING_GEAR: { key: string; label: string; hint?: string }[] = [
   { key: "hammock", label: "Hammocks" },
   { key: "lantern", label: "Lanterns", hint: "For the camp table and the dome" },
   { key: "table", label: "Folding tables" },
+  { key: "cooler", label: "Medium size coolers", hint: "Enough for 30 beers" },
   { key: "rocket", label: "Model rockets", hint: "Plus spare engines and igniters" },
 ];
 
