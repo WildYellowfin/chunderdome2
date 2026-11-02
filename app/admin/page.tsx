@@ -44,6 +44,14 @@ export default async function AdminPage() {
     sub: p.hasCar ? `Driving, ${p.carSeats} seats` : p.rideWith ? `With ${nameOf.get(p.rideWith)}` : "Needs a seat",
   }));
 
+  // Everyone settles with whoever runs admin: requests from people who owe
+  // come first, then payments to people who are owed (mostly drivers).
+  const rank = (t: number) => (t > 0 ? 0 : t < 0 ? 1 : 2);
+  const settle = [...L.money.bills].sort((a, b) => rank(a.total) - rank(b.total) || a.p.name.localeCompare(b.p.name));
+  const others = settle.filter((b) => b.p.phone !== me && b.total !== 0);
+  const collect = others.filter((b) => b.total > 0).reduce((s, b) => s + b.total, 0);
+  const payOut = others.filter((b) => b.total < 0).reduce((s, b) => s - b.total, 0);
+
   const stats: { v: string | number; l: string; t?: string }[] = [
     { v: `${L.people.length}/${TRIP.rsvps}`, l: `signed up${L.pending.length ? `, ${L.pending.length} part-way` : ""}`, t: L.people.length >= TRIP.rsvps ? "ok" : undefined },
     { v: `${L.cars.length}`, l: `cars, ${L.totalSeats} seats` },
@@ -182,16 +190,17 @@ export default async function AdminPage() {
             Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across {L.people.length}. Drivers eat free, and what they spent comes off their total.
           </p>
           {(() => {
-            const lines = [...L.money.bills].filter((b) => b.total !== 0).sort((a, b) => a.p.name.localeCompare(b.p.name))
+            const lines = others
               .map((b) => `${b.p.venmo ? "@" + b.p.venmo : b.p.name + " (no Venmo)"}\t${b.total < 0 ? "pay" : "request"} ${Math.abs(b.total).toFixed(2)}\t${billNote(b)}`);
             return lines.length > 0 && (
               <div className="row" style={{ marginBottom: 12 }}>
+                <span className="mono" style={{ flexBasis: "100%" }}>Collect {usd(collect)} · pay out {usd(payOut)}</span>
                 <CopyButton text={lines.join("\n")} label="Copy Venmo list" />
               </div>
             );
           })()}
           <ul className="list">
-            {[...L.money.bills].sort((a, b) => a.p.name.localeCompare(b.p.name)).map((b) => (
+            {settle.map((b) => (
               <li key={b.p.phone}>
                 <div className="row spread" style={{ alignItems: "baseline", flexWrap: "nowrap" }}>
                   <strong>{b.p.name}{b.p.hasCar && <span className="faint" style={{ fontWeight: 400 }}> · driver</span>}</strong>
@@ -204,7 +213,9 @@ export default async function AdminPage() {
                   {b.spent > 0 && ` · spent\u00a0−${usd(b.spent)}`}
                 </div>
                 <div className="row" style={{ marginTop: 8, gap: 8 }}>
-                  {b.p.venmo && b.total !== 0
+                  {b.p.phone === me
+                    ? <span className="hint" style={{ margin: 0 }}>That&apos;s you</span>
+                    : b.p.venmo && b.total !== 0
                     ? <a className="btn sm ghost" href={venmoLink(b.p.venmo, b)}>{b.total < 0 ? `Pay @${b.p.venmo} ${usd(-b.total)}` : `Request ${usd(b.total)} from @${b.p.venmo}`}</a>
                     : <span className="hint" style={{ margin: 0 }}>{b.p.venmo ? `@${b.p.venmo}` : "No Venmo"}</span>}
                 </div>
