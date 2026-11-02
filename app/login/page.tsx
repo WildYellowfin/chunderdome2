@@ -9,8 +9,8 @@ export default async function LoginPage() {
     <main className="page" style={{ paddingBottom: 40 }}>
       <Masthead />
       <section className="block" style={{ borderTop: 0 }}>
-        <h2 className="d d-l" style={{ marginBottom: 8 }}>Claim your spot</h2>
-        <p className="muted">Sign in with your phone, then tell us where you&apos;re leaving from, whether you&apos;ve got a car, and what gear you have.</p>
+        <h2 className="d d-l" style={{ marginBottom: 8 }}>Confirm your spot</h2>
+        <p className="muted">Please complete this short form to help us plan transportation, gear and food.</p>
         <PhoneForm mode={verifyMode()} />
       </section>
     </main>

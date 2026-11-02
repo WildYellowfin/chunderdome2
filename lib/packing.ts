@@ -1,5 +1,5 @@
 import type { Profile } from "./types";
-import { EXTRA_GEAR } from "./trip";
+import { BRING_GEAR, LEND_GEAR } from "./trip";
 
 export interface PackItem {
   id: string;
@@ -8,59 +8,49 @@ export interface PackItem {
   section: string;
 }
 
-// Personalised packing list. Nights at Dillon Beach in mid-November drop to
-// the mid-40s °F, wind off the ocean, damp fog by morning.
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : `${many} (${n})`);
+
+// Built from your answers: only gear you said you have, plus the things people
+// tend to forget. Everyone's an adult; we don't list beanies.
 export function packingList(p: Profile): PackItem[] {
   const items: PackItem[] = [];
-  const add = (section: string, id: string, label: string, hint?: string) =>
-    items.push({ section, id, label, hint });
+  const add = (section: string, id: string, label: string, hint?: string) => items.push({ section, id, label, hint });
 
   const S = "Sleep";
-  if (p.sleepSetup === "bag") add(S, "sleeping-bag", "Sleeping bag", "Rated to 40°F or warmer is ideal.");
-  if (p.sleepSetup === "blanket") add(S, "blanket", "A big, warm blanket (or two)", "It gets cold. Bring more than you think.");
-  if (p.sleepSetup === "need") add(S, "borrow-bag", "Borrow a sleeping bag", "You said you need one. An admin will match you with a spare.");
+  if (p.sleepSetup === "bag") add(S, "sleeping-bag", "Sleeping bag");
+  if (p.sleepSetup === "blanket") add(S, "blanket", "Warm blankets");
+  if (p.sleepSetup === "need") add(S, "borrow-bag", "Sleeping bag: borrowing one", "We'll match you with a spare and tell you who.");
   if (p.padSetup === "own") add(S, "pad", "Sleeping pad");
-  else add(S, "borrow-pad", "Borrow a sleeping pad", "You said you need one. An admin will match you with a spare.");
-  add(S, "pillow", "Pillow", "Or a stuff sack full of clothes.");
-  if (p.sleeping === "own-tent") add(S, "tent", "Your tent, poles, and stakes");
+  else add(S, "borrow-pad", "Sleeping pad: borrowing one", "We'll match you with a spare and tell you who.");
+  add(S, "pillow", "Pillow");
 
-  const C = "Clothes";
-  add(C, "warm-layer", "Warm jacket or puffy");
-  add(C, "rain-layer", "Rain / wind shell");
-  add(C, "beanie", "Beanie");
-  add(C, "sleep-clothes", "Dry, warm clothes just for sleeping");
-  add(C, "socks", "Wool socks (extra pair)");
-  add(C, "shoes", "Shoes that can get sandy and wet");
-  add(C, "change", "Change of clothes for Sunday");
+  const E = "Easy to forget";
+  add(E, "clothes", "Clothes for 2 days, including warm gear");
+  add(E, "swim", "Swim gear");
+  add(E, "sunglasses", "Sunglasses");
+  add(E, "sunscreen", "Sunscreen");
+  add(E, "towel", "Towel");
+  add(E, "toiletries", "Toiletries");
+  add(E, "meds", "Any meds you take");
+  add(E, "mess-kit", "Mug, plate, bowl, and utensils");
+  if (p.optInBooze) add(E, "id", "ID");
 
-  const G = "Gear";
-  add(G, "headlamp", "Headlamp or torch", "We arrive after dark. Keep it in your pocket, not your bag.");
-  add(G, "water-bottle", "Water bottle");
-  add(G, "mug", "Mug, plate, bowl, and utensils", "Reusable, and labelled with your name if you can.");
-  add(G, "chair", "Camp chair (if you have one)");
-  add(G, "battery", "Phone battery pack");
-
-  const B = "Body";
-  add(B, "toiletries", "Toothbrush and toiletries");
-  add(B, "meds", "Any meds you need");
-  add(B, "sunscreen", "Sunscreen and lip balm");
-  add(B, "towel", "Small towel");
-
-  const F = "Food";
-  add(F, "friday-dinner", "Friday dinner sorted", "Eat before 6 pm, or plan a pickup with your car.");
-  add(F, "snacks", "Snacks for the drive");
-  if (p.dietary.length || p.dietaryNotes.trim()) {
-    add(F, "diet-backup", "A few backup snacks that fit your diet", "We'll cook for everyone, but a safety net never hurts.");
+  const G = "Gear you said you'd bring";
+  for (const g of BRING_GEAR) {
+    const n = p.extras[g.key] || 0;
+    if (n > 0) add(G, `bring-${g.key}`, plural(n, g.label.replace(/s$/, "").replace(/es$/, ""), g.label));
   }
-  if (p.optInBooze) add(F, "id", "ID");
 
-  const X = "Extras";
-  if (p.hasCar) add(X, "car-ready", "Car fuelled up and trunk cleared");
-  for (const [key, n] of Object.entries(p.extras)) {
-    const label = EXTRA_GEAR.find((g) => g.key === key)?.label.toLowerCase() ?? key;
-    if (n > 0) add(X, `extra-${key}`, `Spare ${label} for the group (${n})`);
+  const L = "To lend";
+  for (const g of LEND_GEAR) {
+    const n = p.extras[g.key] || 0;
+    if (n > 0) add(L, `lend-${g.key}`, n === 1 ? `Spare ${g.label.toLowerCase().replace(/s$/, "")}` : `Spare ${g.label.toLowerCase()} (${n})`);
   }
-  if (p.bringing.trim()) add(X, "bringing", `Your contribution: ${p.bringing.trim()}`);
+  p.tents.forEach((sleeps, i) => add(L, `lend-tent-${i}`, `Tent for ${sleeps}`, "Poles, stakes, and fly."));
+
+  const D = "Friday";
+  add(D, "friday-dinner", "Eat before 6 PM", "No group dinner Friday.");
+  if (p.hasCar) add(D, "car-ready", "Tank filled, trunk cleared");
 
   return items;
 }

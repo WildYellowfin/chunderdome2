@@ -108,7 +108,20 @@ if (!url && process.env.VERCEL) {
   console.warn("No Redis configured: data will not persist on Vercel. Add the Upstash for Redis integration.");
 }
 
-export const db: Store = url && token ? redisStore(new Redis({ url, token })) : fileStore();
+const raw: Store = url && token ? redisStore(new Redis({ url, token })) : fileStore();
+
+// Profiles saved by older versions of the form lack newer fields; fill them in.
+const fill = (p: Profile): Profile => ({ ...emptyProfile(p.phone), ...p });
+export const db: Store = {
+  ...raw,
+  async getProfile(phone) {
+    const p = await raw.getProfile(phone);
+    return p && fill(p);
+  },
+  async listProfiles() {
+    return (await raw.listProfiles()).map(fill);
+  },
+};
 
 export async function getOrCreateProfile(phone: string): Promise<Profile> {
   const existing = await db.getProfile(phone);

@@ -6,20 +6,22 @@ A small Next.js app for planning the Chunderdome II camping trip to Dillon Beach
 
 **For everyone**
 - Sign in with a phone number (SMS code via Twilio Verify, or a shared trip code).
-- Six-step onboarding: name and rough area, emergency contact, how they're getting there, car and seats, where they'll sleep, sleeping bag and pad, spare gear to share, dietary needs, Venmo, and agreeing to the $30 food budget (+ optional $20 booze kitty).
+- Six-step onboarding: name and a pickup pin on a drag-to-place map centred on Clay House (1473 Clay St), whether they'll drive (car size and trunk space), when they need to be home Sunday, sleeping bag and pad, gear to lend (bags, pads, tents with sizes), essential and useful gear they're bringing, dietary needs, optional Venmo, and the $30 food budget (free for drivers) plus an optional $20 booze kitty.
+- Drivers log fuel and tolls under Me after the trip; transport is split evenly across everyone, drivers included.
 - Trip home page: illustrated map, countdown, itinerary, meal plan, their car and carmates, and the crew.
 - A packing list built from their answers that they tick off as they go.
 
 **For admins** (`/admin`)
 - Signups vs the 22 RSVPs, cars and seats vs people riding with the group, riders without a car.
 - Car cards with seat maps, and a dropdown to assign each rider to a car.
-- Who's where: people, drivers, and seats by area.
-- Gear sufficiency: sleeping bags and pads needed vs spares offered, Chunderdome space (16) vs people who want in, and every spare item with who has it.
-- Dietary roll-up, Venmo list with what each person owes, missing Venmos and emergency contacts.
+- A pickups map with every pin (drivers with seat counts), plus people and seats by neighbourhood.
+- Sunday return times, including who needs to be back early.
+- Gear: sleeping bags and pads needed vs lent, tent beds vs people, headlamps and chairs vs headcount, and who's bringing what.
+- Dietary roll-up, and a money table with food, booze, transport share, and each person's total (drivers can come out owed).
 - Copy every phone number for a group text, download everything as CSV.
 - Add or remove admins. Owners (from `OWNER_PHONES`) can't be removed.
 
-Trip details (times, meals, areas, gear lists) live in `lib/trip.ts`.
+Trip details (times, meals, Clay House, neighbourhoods, gear lists) live in `lib/trip.ts`. The pickup maps use MapLibre with OpenFreeMap vector tiles (free, no key), styled in the poster palette in `lib/mapStyle.ts`.
 
 ## Deploy to Vercel
 

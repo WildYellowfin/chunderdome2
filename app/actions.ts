@@ -13,8 +13,8 @@ import {
   verifyMode,
 } from "@/lib/auth";
 import { db, getOrCreateProfile, normalizePhone, ownerPhones } from "@/lib/db";
-import { AREAS, DIETARY_OPTIONS, EXTRA_GEAR } from "@/lib/trip";
-import type { Profile } from "@/lib/types";
+import { DIETARY_OPTIONS, EXTRA_GEAR, placeName } from "@/lib/trip";
+import type { Profile, Trunk } from "@/lib/types";
 
 export type FormState = { error?: string } | undefined;
 
@@ -65,47 +65,52 @@ const int = (v: unknown, min: number, max: number, dflt: number) => {
 const oneOf = <T extends string>(v: unknown, opts: readonly T[], dflt: T): T =>
   opts.includes(v as T) ? (v as T) : dflt;
 
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : NaN);
+
 export async function saveProfile(input: Partial<Profile>): Promise<{ error?: string }> {
   const { profile } = await requireUser();
 
   const name = str(input.name, 60);
   if (!name) return { error: "We need your name." };
-  const area = AREAS.includes(str(input.area)) ? str(input.area) : "";
-  if (!area) return { error: "Pick roughly where you'll be leaving from." };
-  const venmo = str(input.venmo, 40).replace(/^@/, "");
-  if (!venmo) return { error: "Add your Venmo so settling up is painless." };
-  if (!input.agreeFood) return { error: `Please agree to the food budget so we can feed you.` };
+  const lat = num(input.pickup?.lat);
+  const lng = num(input.pickup?.lng);
+  if (!(lat > 36 && lat < 39.5 && lng > -124 && lng < -121)) return { error: "Drop your pickup pin somewhere in the Bay Area." };
+  const pickup = { lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000 };
+
+  const hasCar = !!input.hasCar;
+  if (!hasCar && !input.agreeFood) return { error: `Please agree to the food budget so we can feed you.` };
+  const returnPref = oneOf(input.returnPref, ["1pm", "later", "earlier"] as const, "1pm");
+  const returnBy = returnPref === "earlier" && /^\d{2}:\d{2}$/.test(str(input.returnBy)) ? str(input.returnBy) : "";
+  if (returnPref === "earlier" && !returnBy) return { error: "Tell us when you need to be back on Sunday." };
 
   const extras: Record<string, number> = {};
   for (const g of EXTRA_GEAR) {
     const n = int(input.extras?.[g.key], 0, 20, 0);
     if (n) extras[g.key] = n;
   }
+  const tents = (Array.isArray(input.tents) ? input.tents : []).slice(0, 6).map((t) => int(t, 1, 12, 2));
 
-  const hasCar = !!input.hasCar;
   const next: Profile = {
     ...profile,
     name,
-    area,
-    areaDetail: str(input.areaDetail, 80),
+    pickup,
+    area: placeName(pickup),
     hasCar,
-    carSeats: hasCar ? int(input.carSeats, 2, 9, 5) : 0,
-    carNotes: hasCar ? str(input.carNotes, 200) : "",
+    carSeats: hasCar ? int(input.carSeats, 2, 12, 5) : 0,
+    trunk: hasCar ? (int(input.trunk, 0, 2, 1) as Trunk) : 1,
+    returnPref,
+    returnBy,
     sleepSetup: oneOf(input.sleepSetup, ["bag", "blanket", "need"] as const, "bag"),
     padSetup: oneOf(input.padSetup, ["own", "need"] as const, "own"),
     extras,
-    tentSleeps: int(input.tentSleeps, 1, 12, 2),
-    bringing: str(input.bringing, 200),
+    tents,
     dietary: (Array.isArray(input.dietary) ? input.dietary : []).filter((d) => DIETARY_OPTIONS.includes(d)),
     dietaryNotes: str(input.dietaryNotes, 300),
-    venmo,
-    agreeFood: true,
+    venmo: str(input.venmo, 40).replace(/^@/, ""),
+    agreeFood: !hasCar,
     optInBooze: !!input.optInBooze,
-    emergencyName: str(input.emergencyName, 60),
-    emergencyPhone: str(input.emergencyPhone, 30),
-    travel: oneOf(input.travel, ["group", "own-way", "late"] as const, "group"),
-    sleeping: oneOf(input.sleeping, ["chunderdome", "own-tent", "car", "undecided"] as const, "chunderdome"),
-    stayLater: !!input.stayLater,
+    fuelCost: hasCar ? profile.fuelCost : 0,
+    tollCost: hasCar ? profile.tollCost : 0,
     notes: str(input.notes, 500),
     // A driver always rides in their own car.
     rideWith: hasCar ? profile.phone : profile.rideWith === profile.phone ? null : profile.rideWith,
@@ -113,6 +118,19 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     updatedAt: new Date().toISOString(),
   };
   await db.saveProfile(next);
+  revalidatePath("/", "layout");
+  return {};
+}
+
+const dollars = (v: FormDataEntryValue | null) => {
+  const n = Number(String(v ?? "").replace(/[$,\s]/g, ""));
+  return Number.isFinite(n) ? Math.min(2000, Math.max(0, Math.round(n * 100) / 100)) : 0;
+};
+
+export async function saveDriverCosts(_: FormState, form: FormData): Promise<FormState> {
+  const { profile } = await requireUser();
+  if (!profile.hasCar) return { error: "Only drivers log fuel and tolls." };
+  await db.saveProfile({ ...profile, fuelCost: dollars(form.get("fuel")), tollCost: dollars(form.get("tolls")), updatedAt: new Date().toISOString() });
   revalidatePath("/", "layout");
   return {};
 }

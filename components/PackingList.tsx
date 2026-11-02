@@ -21,7 +21,7 @@ export default function PackingList({ items, packed }: { items: PackItem[]; pack
           <span className="d d-m">{done}<span className="faint">/{items.length}</span></span>
         </div>
         <div className="meter"><div style={{ width: `${(done / Math.max(1, items.length)) * 100}%` }} /></div>
-        <p className="muted" style={{ margin: "12px 0 0", fontSize: 15 }}>Built from your answers. Cold nights, damp mornings, sand in everything.</p>
+        <p className="muted" style={{ margin: "12px 0 0", fontSize: 15 }}>Built from your answers. Change them under Me and this updates.</p>
       </section>
       {sections.map((s) => (
         <section className="block" key={s}>

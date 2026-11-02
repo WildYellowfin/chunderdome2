@@ -1,36 +1,44 @@
 export type SleepSetup = "bag" | "blanket" | "need";
 export type PadSetup = "own" | "need";
-export type Sleeping = "chunderdome" | "own-tent" | "car" | "undecided";
-export type Travel = "group" | "own-way" | "late";
+export type ReturnPref = "1pm" | "later" | "earlier";
+/** 0 = a couple of small bags, 1 = a few duffels, 2 = several large suitcases */
+export type Trunk = 0 | 1 | 2;
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
 
 export interface Profile {
   phone: string; // E.164, the user id
   name: string;
-  area: string;
-  areaDetail: string; // cross streets / neighbourhood, optional
+  pickup: LatLng | null; // dropped pin, rounded to ~100 m
+  area: string; // neighbourhood label derived from the pin
 
-  hasCar: boolean;
+  hasCar: boolean; // has a car and is willing to drive it
   carSeats: number; // total seats including the driver
-  carNotes: string; // e.g. "big trunk", "can leave at 5"
+  trunk: Trunk; // trunk space left with the car full
+
+  returnPref: ReturnPref;
+  returnBy: string; // "HH:MM" on Sunday, when returnPref is "earlier"
 
   sleepSetup: SleepSetup;
   padSetup: PadSetup;
+  // Things to lend or bring, by EXTRA_GEAR / BRING_GEAR key.
   extras: Record<string, number>;
-  tentSleeps: number; // capacity of each spare tent
-  bringing: string; // games, guitar, speaker, etc.
+  tents: number[]; // spare tents to lend, each entry is how many it sleeps
 
   dietary: string[];
   dietaryNotes: string;
 
-  venmo: string;
+  venmo: string; // optional
   agreeFood: boolean;
   optInBooze: boolean;
 
-  emergencyName: string;
-  emergencyPhone: string;
-  travel: Travel;
-  sleeping: Sleeping;
-  stayLater: boolean;
+  // Drivers fill these in after the trip.
+  fuelCost: number;
+  tollCost: number;
+
   notes: string;
 
   // App state
@@ -46,26 +54,24 @@ export function emptyProfile(phone: string): Profile {
   return {
     phone,
     name: "",
+    pickup: null,
     area: "",
-    areaDetail: "",
     hasCar: false,
     carSeats: 5,
-    carNotes: "",
+    trunk: 1,
+    returnPref: "1pm",
+    returnBy: "",
     sleepSetup: "bag",
     padSetup: "own",
     extras: {},
-    tentSleeps: 2,
-    bringing: "",
+    tents: [],
     dietary: [],
     dietaryNotes: "",
     venmo: "",
     agreeFood: false,
     optInBooze: false,
-    emergencyName: "",
-    emergencyPhone: "",
-    travel: "group",
-    sleeping: "chunderdome",
-    stayLater: false,
+    fuelCost: 0,
+    tollCost: 0,
     notes: "",
     packed: [],
     rideWith: null,

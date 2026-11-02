@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfile } from "@/app/actions";
-import { AREAS, DIETARY_OPTIONS, EXTRA_GEAR, MEALS, TRIP } from "@/lib/trip";
-import type { Profile } from "@/lib/types";
+import { BRING_GEAR, CLAY_HOUSE, DIETARY_OPTIONS, LEND_GEAR, MEALS, RETURN_OPTIONS, SEAT_OPTIONS, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
+import type { Profile, Trunk } from "@/lib/types";
+import PickupMap from "./PickupMap";
 
-const STEPS = ["You", "Getting there", "Sleeping", "Gear to share", "Food", "Money"];
+const STEPS = ["You", "Getting there", "Sleeping", "Gear", "Food", "Money"];
 
 function Opt<T extends string>({
   value, current, onPick, title, sub, name,
@@ -23,7 +24,7 @@ function Opt<T extends string>({
 
 function Tick({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: React.ReactNode; sub?: string }) {
   return (
-    <label className={`opt check ${on ? "on" : ""}`}>
+    <label className={`opt tick ${on ? "on" : ""}`}>
       <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} />
       <span className="box" aria-hidden />
       <span><span className="t">{title}</span>{sub && <span className="s">{sub}</span>}</span>
@@ -31,7 +32,7 @@ function Tick({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean
   );
 }
 
-function Counter({ label, hint, value, onChange }: { label: string; hint?: string; value: number; onChange: (n: number) => void }) {
+function Counter({ label, hint, value, onChange, min = 0, max = 20 }: { label: string; hint?: string; value: number; onChange: (n: number) => void; min?: number; max?: number }) {
   return (
     <div className="stepper">
       <div>
@@ -39,11 +40,79 @@ function Counter({ label, hint, value, onChange }: { label: string; hint?: strin
         {hint && <div className="hint" style={{ marginTop: 2 }}>{hint}</div>}
       </div>
       <div className="ctl">
-        <button type="button" aria-label={`Fewer ${label}`} onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+        <button type="button" aria-label={`Fewer ${label}`} onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>−</button>
         <output className={value ? "nz" : ""} aria-live="polite">{value}</output>
-        <button type="button" aria-label={`More ${label}`} onClick={() => onChange(Math.min(20, value + 1))}>+</button>
+        <button type="button" aria-label={`More ${label}`} onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
       </div>
     </div>
+  );
+}
+
+function YesNo({ value, onChange, yes, no }: { value: boolean; onChange: (v: boolean) => void; yes: string; no: string }) {
+  return (
+    <div className="seg two" role="radiogroup">
+      <button type="button" role="radio" aria-checked={value} onClick={() => onChange(true)}>{yes}</button>
+      <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(false)}>{no}</button>
+    </div>
+  );
+}
+
+function CarSize({ seats, onChange }: { seats: number; onChange: (n: number) => void }) {
+  const preset = (SEAT_OPTIONS as readonly number[]).includes(seats);
+  const [other, setOther] = useState(!preset);
+  return (
+    <>
+      <div className="seg four" role="radiogroup" aria-label="Seats">
+        {SEAT_OPTIONS.map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={!other && seats === n} onClick={() => { setOther(false); onChange(n); }}>
+            <b>{n}</b><span>seater</span>
+          </button>
+        ))}
+        <button type="button" role="radio" aria-checked={other} onClick={() => { setOther(true); if (preset) onChange(4); }}>
+          <b>…</b><span>other</span>
+        </button>
+      </div>
+      {other && (
+        <div className="opts" style={{ marginTop: 10 }}>
+          <Counter label="Seats, including yours" value={seats} onChange={onChange} min={2} max={12} />
+        </div>
+      )}
+    </>
+  );
+}
+
+function TrunkSlider({ value, onChange }: { value: Trunk; onChange: (v: Trunk) => void }) {
+  return (
+    <div className="trunk">
+      <div className="trunk-now">
+        <TrunkIcon level={value} />
+        <strong>{TRUNK_OPTIONS[value]}</strong>
+      </div>
+      <input
+        type="range" min={0} max={2} step={1} value={value}
+        onChange={(e) => onChange(Number(e.target.value) as Trunk)}
+        aria-label="Trunk space with the car full"
+        aria-valuetext={TRUNK_OPTIONS[value]}
+        style={{ "--fill": `${value * 50}%` } as React.CSSProperties}
+      />
+      <div className="trunk-ends mono faint"><span>Tight</span><span>Roomy</span></div>
+    </div>
+  );
+}
+
+function TrunkIcon({ level }: { level: Trunk }) {
+  // Bags stacked in an open trunk: one, three, or five of them.
+  const bags = [
+    [6, 22, 10, 10], [18, 18, 14, 14], [34, 24, 9, 8], [8, 8, 16, 12], [26, 6, 14, 10],
+  ].slice(0, [1, 3, 5][level]);
+  return (
+    <svg viewBox="0 0 52 36" width="52" height="36" aria-hidden>
+      <path d="M2 34h48V14l-6-8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M2 34V14" stroke="currentColor" strokeWidth="2.5" />
+      {bags.map(([x, y, w, h], i) => (
+        <rect key={i} x={x} y={y} width={w} height={h} fill={i % 2 ? "var(--ochre)" : "var(--red)"} stroke="currentColor" strokeWidth="2" />
+      ))}
+    </svg>
   );
 }
 
@@ -55,27 +124,33 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
   const [pending, start] = useTransition();
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setP((x) => ({ ...x, [k]: v }));
   const setExtra = (k: string, n: number) => setP((x) => ({ ...x, extras: { ...x.extras, [k]: n } }));
+  const setTents = (t: number[]) => set("tents", t);
 
   function validate(s: number): string | null {
     if (s === 0 && !p.name.trim()) return "What should we call you?";
-    if (s === 0 && !p.area) return "Pick roughly where you'll be leaving from.";
-    if (s === 5 && !p.venmo.trim()) return "Add your Venmo username.";
-    if (s === 5 && !p.agreeFood) return `Tick the $${TRIP.foodBudget} food budget box so we can feed you.`;
+    if (s === 0 && !p.pickup) return "Drag the map to drop your pin.";
+    if (s === 1 && p.returnPref === "earlier" && !p.returnBy) return "What time do you need to be back on Sunday?";
+    if (s === 5 && !p.hasCar && !p.agreeFood) return `Tick the $${TRIP.foodBudget} food box so we can feed you.`;
     return null;
+  }
+
+  function go(to: number) {
+    setError(null);
+    setStep(to);
+    window.scrollTo({ top: 0 });
   }
 
   function next() {
     const e = validate(step);
     setError(e);
-    if (!e) {
-      setStep((s) => s + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    if (!e) go(step + 1);
   }
 
   function submit() {
-    const e = validate(0) ?? validate(5);
-    if (e) return setError(e);
+    for (const s of [0, 1, 5]) {
+      const e = validate(s);
+      if (e) { setError(e); if (s !== step) setStep(s); return; }
+    }
     start(async () => {
       const res = await saveProfile(p);
       if (res.error) return setError(res.error);
@@ -84,7 +159,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
     });
   }
 
-  const T = (k: keyof Profile) => (v: string) => set(k, v as never);
+  const owesFood = p.hasCar ? 0 : TRIP.foodBudget;
 
   return (
     <div className="flow">
@@ -104,28 +179,14 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 0 && (
           <>
             <h2 className="d d-l">Who&apos;s this?</h2>
-            <p className="muted">Three minutes, six screens. Then you&apos;re on the manifest.</p>
-            <div className="field">
+            <div className="field" style={{ marginTop: 18 }}>
               <label htmlFor="name">Your name</label>
               <input id="name" type="text" value={p.name} onChange={(e) => set("name", e.target.value)} autoComplete="name" placeholder="First and last" />
             </div>
             <div className="field">
-              <label htmlFor="area">Where are you leaving from?</label>
-              <select id="area" value={p.area} onChange={(e) => set("area", e.target.value)}>
-                <option value="">Pick an area</option>
-                {AREAS.map((a) => <option key={a}>{a}</option>)}
-              </select>
-              <div className="hint">No address. This is just for grouping people into cars.</div>
-            </div>
-            <div className="field">
-              <label htmlFor="areaDetail">Nearest cross streets <span className="faint">(optional)</span></label>
-              <input id="areaDetail" type="text" value={p.areaDetail} onChange={(e) => set("areaDetail", e.target.value)} placeholder="24th & Valencia" />
-            </div>
-            <div className="field">
-              <span className="label">Emergency contact</span>
-              <div className="hint" style={{ marginTop: 0, marginBottom: 8 }}>Signal at the beach is patchy. Hopefully never used.</div>
-              <input aria-label="Emergency contact name" type="text" value={p.emergencyName} onChange={(e) => set("emergencyName", e.target.value)} placeholder="Name" style={{ marginBottom: 8 }} />
-              <input aria-label="Emergency contact phone" type="tel" value={p.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} placeholder="Phone" />
+              <span className="label">Where should we pick you up?</span>
+              <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>Cars gather at {CLAY_HOUSE.name} ({CLAY_HOUSE.address}). A nearby corner is plenty.</div>
+              <PickupMap value={p.pickup} onChange={(v, area) => setP((x) => ({ ...x, pickup: v, area }))} />
             </div>
           </>
         )}
@@ -133,38 +194,40 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 1 && (
           <>
             <h2 className="d d-l">Getting there</h2>
-            <p className="muted">Cars leave SF at 6 PM Friday. Everyone&apos;s home by 1 PM Sunday.</p>
+            <p className="muted">Cars leave at 6 PM Friday. Back by 1 PM Sunday.</p>
             <div className="field">
-              <span className="label">How are you getting there?</span>
-              <div className="opts">
-                <Opt name="travel" value="group" current={p.travel} onPick={T("travel")} title="With the group at 6" sub="Riding in someone's car, or driving one" />
-                <Opt name="travel" value="own-way" current={p.travel} onPick={T("travel")} title="My own way, same time" />
-                <Opt name="travel" value="late" current={p.travel} onPick={T("travel")} title="Arriving late or Saturday" sub="Say when in the last step" />
-              </div>
-            </div>
-            <div className="field">
-              <span className="label">Can you drive a car up?</span>
-              <div className="opts">
-                <Opt name="car" value="yes" current={p.hasCar ? "yes" : "no"} onPick={() => set("hasCar", true)} title="Yes, I have a car and will drive" />
-                <Opt name="car" value="no" current={p.hasCar ? "yes" : "no"} onPick={() => set("hasCar", false)} title="No, I need a seat" />
-              </div>
+              <span className="label">Do you have a car you&apos;re willing to drive?</span>
+              <YesNo value={p.hasCar} onChange={(v) => set("hasCar", v)} yes="Yes, I'll drive" no="No car" />
             </div>
             {p.hasCar && (
               <>
-                <div className="field">
-                  <label htmlFor="seats">Total seats, including yours</label>
-                  <select id="seats" value={p.carSeats || 5} onChange={(e) => set("carSeats", Number(e.target.value))}>
-                    {[2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n} seats ({n - 1} passengers)</option>)}
-                  </select>
+                <div className="note ink perk">
+                  <div className="d d-m">Drivers eat free.</div>
+                  <p style={{ margin: "6px 0 0" }}>Your meals are on the group. Fuel and tolls get split evenly across everyone, you included, and you log them after the trip.</p>
                 </div>
                 <div className="field">
-                  <label htmlFor="cn">Anything about the car? <span className="faint">(optional)</span></label>
-                  <input id="cn" type="text" value={p.carNotes} onChange={(e) => set("carNotes", e.target.value)} placeholder="Big trunk, roof box, leaving at 6:30" />
+                  <span className="label">How big is it?</span>
+                  <CarSize seats={p.carSeats} onChange={(n) => set("carSeats", n)} />
+                </div>
+                <div className="field">
+                  <span className="label">Trunk space with the car full</span>
+                  <TrunkSlider value={p.trunk} onChange={(v) => set("trunk", v)} />
                 </div>
               </>
             )}
-            <div className="opts">
-              <Tick on={p.stayLater} onChange={(v) => set("stayLater", v)} title="I might stay later on Sunday" sub="We'll try to put you in a car that's staying too." />
+            <div className="field">
+              <span className="label">Getting home on Sunday</span>
+              <div className="opts">
+                {RETURN_OPTIONS.map((o) => (
+                  <Opt key={o.value} name="ret" value={o.value} current={p.returnPref} onPick={(v) => set("returnPref", v)} title={o.title} />
+                ))}
+              </div>
+              {p.returnPref === "earlier" && (
+                <div className="backby">
+                  <label htmlFor="rb">Back in SF by</label>
+                  <input id="rb" type="time" value={p.returnBy} min="06:00" max="13:00" step={900} onChange={(e) => set("returnBy", e.target.value)} />
+                </div>
+              )}
             </div>
           </>
         )}
@@ -172,52 +235,67 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 2 && (
           <>
             <h2 className="d d-l">Sleeping</h2>
-            <p className="muted">The Chunderdome sleeps {TRIP.tentCapacity}, plus a couple of smaller group tents. November nights here hit the mid-40s °F.</p>
-            <div className="field">
-              <span className="label">Where do you want to sleep?</span>
-              <div className="opts">
-                <Opt name="sleeping" value="chunderdome" current={p.sleeping} onPick={T("sleeping")} title="In the Chunderdome" />
-                <Opt name="sleeping" value="own-tent" current={p.sleeping} onPick={T("sleeping")} title="In my own tent" sub="You bring it, you pitch it" />
-                <Opt name="sleeping" value="car" current={p.sleeping} onPick={T("sleeping")} title="In a car" />
-                <Opt name="sleeping" value="undecided" current={p.sleeping} onPick={T("sleeping")} title="Wherever there's room" />
-              </div>
-            </div>
+            <p className="muted">We&apos;ll work out who sleeps where. November nights here drop to the mid-40s.</p>
             <div className="field">
               <span className="label">Sleeping bag</span>
               <div className="opts">
-                <Opt name="bag" value="bag" current={p.sleepSetup} onPick={T("sleepSetup")} title="I have one" />
-                <Opt name="bag" value="blanket" current={p.sleepSetup} onPick={T("sleepSetup")} title="I'll bring warm blankets" />
-                <Opt name="bag" value="need" current={p.sleepSetup} onPick={T("sleepSetup")} title="I need to borrow one" />
+                <Opt name="bag" value="bag" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I have one" />
+                <Opt name="bag" value="blanket" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I'll bring warm blankets" />
+                <Opt name="bag" value="need" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I need to borrow one" />
               </div>
             </div>
             <div className="field">
               <span className="label">Sleeping pad</span>
               <div className="opts">
-                <Opt name="pad" value="own" current={p.padSetup} onPick={T("padSetup")} title="I have one" />
-                <Opt name="pad" value="need" current={p.padSetup} onPick={T("padSetup")} title="I need to borrow one" />
+                <Opt name="pad" value="own" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I have one" />
+                <Opt name="pad" value="need" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I need to borrow one" />
               </div>
+            </div>
+
+            <h3 className="d d-m section-h">Extra gear</h3>
+            <p className="muted">Do you have extra gear you don&apos;t mind lending to fellow chunderdomers?</p>
+            <div className="opts field">
+              {LEND_GEAR.map((g) => (
+                <Counter key={g.key} label={g.label} value={p.extras[g.key] || 0} onChange={(n) => setExtra(g.key, n)} />
+              ))}
+              {p.tents.map((sleeps, i) => (
+                <div className="stepper tent" key={i}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Tent {p.tents.length > 1 ? i + 1 : ""}</div>
+                    <button type="button" className="linkbtn hint" onClick={() => setTents(p.tents.filter((_, j) => j !== i))}>Remove</button>
+                  </div>
+                  <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                    <span className="mono faint">Sleeps</span>
+                    <div className="ctl">
+                      <button type="button" aria-label="Sleeps fewer" onClick={() => setTents(p.tents.map((t, j) => (j === i ? Math.max(1, t - 1) : t)))}>−</button>
+                      <output className="nz">{sleeps}</output>
+                      <button type="button" aria-label="Sleeps more" onClick={() => setTents(p.tents.map((t, j) => (j === i ? Math.min(12, t + 1) : t)))}>+</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="add-row" onClick={() => setTents([...p.tents, 2])}>
+                <span aria-hidden>+</span> {p.tents.length ? "Another tent" : "I have a tent to lend"}
+              </button>
             </div>
           </>
         )}
 
         {step === 3 && (
           <>
-            <h2 className="d d-l">Spares to share</h2>
-            <p className="muted">Only count what you can bring beyond your own. The group already has the big tent, both coolers, the stove, and cooking gear.</p>
+            <h2 className="d d-l">Gear</h2>
+            <p className="muted">How many are you bringing, counting your own? The group already has the big tent, coolers, stove, and cooking gear.</p>
+            <h3 className="mono section-k">Essential</h3>
             <div className="opts field">
-              {EXTRA_GEAR.map((g) => (
-                <Counter key={g.key} label={g.label} hint={g.key === "tent" ? undefined : g.hint} value={p.extras[g.key] || 0} onChange={(n) => setExtra(g.key, n)} />
+              {BRING_GEAR.filter((g) => g.essential).map((g) => (
+                <Counter key={g.key} label={g.label} hint={g.hint} value={p.extras[g.key] || 0} onChange={(n) => setExtra(g.key, n)} />
               ))}
             </div>
-            {(p.extras.tent || 0) > 0 && (
-              <div className="field">
-                <label htmlFor="ts">Each spare tent sleeps</label>
-                <input id="ts" type="number" inputMode="numeric" min={1} max={12} value={p.tentSleeps} onChange={(e) => set("tentSleeps", Number(e.target.value))} />
-              </div>
-            )}
-            <div className="field">
-              <label htmlFor="br">Bringing anything fun? <span className="faint">(optional)</span></label>
-              <input id="br" type="text" value={p.bringing} onChange={(e) => set("bringing", e.target.value)} placeholder="Guitar, frisbee, cards, rocket parts" />
+            <h3 className="mono section-k">Useful</h3>
+            <div className="opts field">
+              {BRING_GEAR.filter((g) => !g.essential).map((g) => (
+                <Counter key={g.key} label={g.label} hint={g.hint} value={p.extras[g.key] || 0} onChange={(n) => setExtra(g.key, n)} />
+              ))}
             </div>
           </>
         )}
@@ -225,7 +303,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 4 && (
           <>
             <h2 className="d d-l">Food</h2>
-            <p className="muted">Eat before we leave Friday, or grab something on the way with your car. We get in around 7:30 and setting up takes the evening. After that, we cook.</p>
+            <p className="muted">Eat before we leave Friday. After that, we cook.</p>
             <ul className="list field">
               {MEALS.map((m) => (
                 <li key={m.meal} className="row spread"><span>{m.meal}</span><span className={`tag ${m.provided ? "solid" : ""}`}>{m.provided ? "Provided" : "On you"}</span></li>
@@ -254,24 +332,41 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
           <>
             <h2 className="d d-l">Money</h2>
             <p className="muted">We buy food together and send Venmo requests after the trip.</p>
-            <div className="field">
-              <label htmlFor="venmo">Venmo username</label>
-              <input id="venmo" type="text" value={p.venmo} onChange={(e) => set("venmo", e.target.value)} placeholder="@your-name" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+            <div className="bill field">
+              <div className="bill-row">
+                <span>Food<span className="s">{p.hasCar ? "Free for drivers. Thanks for driving." : "Two breakfasts, Saturday lunch and dinner"}</span></span>
+                {p.hasCar ? <span className="bill-v"><s>${TRIP.foodBudget}</s> <b>Free</b></span> : <b className="bill-v">${TRIP.foodBudget}</b>}
+              </div>
+              <div className="bill-row">
+                <span>Fuel and tolls<span className="s">Split evenly across everyone, drivers included</span></span>
+                <b className="bill-v">Your share</b>
+              </div>
+              <div className="bill-row">
+                <span>Booze kitty<span className="s">Optional</span></span>
+                <b className="bill-v">{p.optInBooze ? `$${TRIP.boozeBudget}` : "—"}</b>
+              </div>
             </div>
+            {p.hasCar && <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>After the trip, add what you spent on fuel and tolls under Me, and it comes off your share.</p>}
             <div className="opts field">
-              <Tick on={p.agreeFood} onChange={(v) => set("agreeFood", v)} title={`I'm in for $${TRIP.foodBudget} for food`} sub="Two breakfasts, Saturday lunch, Saturday dinner" />
-              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title={`Add $${TRIP.boozeBudget} for the booze kitty`} sub="Optional. Skip it if you're bringing your own or not drinking." />
+              {!p.hasCar && <Tick on={p.agreeFood} onChange={(v) => set("agreeFood", v)} title={`I'm in for $${TRIP.foodBudget} of food`} />}
+              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title={`Add $${TRIP.boozeBudget} for the booze kitty`} sub="Skip it if you're bringing your own or not drinking." />
+            </div>
+            <div className="field">
+              <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>
+              <input id="venmo" type="text" value={p.venmo} onChange={(e) => set("venmo", e.target.value)} placeholder="@your-name" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+              <div className="hint">No Venmo? Leave it blank and we&apos;ll sort it out another way.</div>
             </div>
             <div className="field">
               <label htmlFor="notes">Anything else? <span className="faint">(optional)</span></label>
-              <textarea id="notes" value={p.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Arriving Saturday at noon, need to leave early" />
+              <textarea id="notes" value={p.notes} onChange={(e) => set("notes", e.target.value)} />
             </div>
+            <p className="faint" style={{ fontSize: 14 }}>Estimated total before fuel and tolls: ${owesFood + (p.optInBooze ? TRIP.boozeBudget : 0)}.</p>
           </>
         )}
       </div>
 
       <div className="flow-foot">
-        {step > 0 && <button type="button" className="btn ghost" onClick={() => { setError(null); setStep(step - 1); window.scrollTo({ top: 0 }); }}>Back</button>}
+        {step > 0 && <button type="button" className="btn ghost" onClick={() => go(step - 1)}>Back</button>}
         {step < STEPS.length - 1
           ? <button type="button" className="btn" onClick={next}>Next</button>
           : <button type="button" className="btn" onClick={submit} disabled={pending}>{pending ? "Saving" : firstTime ? "I'm in" : "Save"}</button>}

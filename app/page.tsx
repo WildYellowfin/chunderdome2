@@ -3,6 +3,7 @@ import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { GROUP_GEAR, ITINERARY, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
+import { bill, transportTotals, usd } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
 import TabBar from "@/components/TabBar";
 
@@ -20,7 +21,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
   const items = packingList(me);
   const packed = items.filter((i) => me.packed.includes(i.id)).length;
   const cars = everyone.filter((p) => p.hasCar).length;
-  const owes = TRIP.foodBudget + (me.optInBooze ? TRIP.boozeBudget : 0);
+  const T = transportTotals(everyone);
+  const tab = bill(me, T.share);
 
   return (
     <>
@@ -38,11 +40,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
 
         <section className="block" style={welcome ? undefined : { borderTop: 0 }}>
           <div className="block-head"><h2 className="d d-m">Your ride</h2><span className="mono faint">Leaves 6:00 PM</span></div>
-          {me.travel === "late" ? (
-            <p>You&apos;re arriving late. Text an organiser when you&apos;re on the road.</p>
-          ) : me.travel === "own-way" ? (
-            <p>You&apos;re making your own way. Aim for Dillon Beach around 7:30 PM Friday.</p>
-          ) : driver ? (
+          {driver ? (
             <div className="car">
               <div className="row spread">
                 <strong className="d d-s">{driver.phone === me.phone ? "You're driving" : `${first(driver.name)}'s car`}</strong>
@@ -60,7 +58,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           ) : (
             <div className="note">
               <strong>Car to be decided.</strong>
-              <p className="muted" style={{ margin: "4px 0 0" }}>We&apos;ll match you with a driver near {me.area.replace(/^SF · /, "")}.</p>
+              <p className="muted" style={{ margin: "4px 0 0" }}>We&apos;ll match you with a driver near {me.area || "your pin"}.</p>
             </div>
           )}
         </section>
@@ -101,8 +99,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           </ul>
           <div className="note ink" style={{ marginTop: 16 }}>
             <div className="mono" style={{ opacity: 0.7 }}>Your share</div>
-            <div className="d d-l" style={{ margin: "4px 0" }}>${owes}</div>
-            <div style={{ fontSize: 14, opacity: 0.85 }}>${TRIP.foodBudget} food{me.optInBooze ? ` + $${TRIP.boozeBudget} booze kitty` : ""}. Venmo request comes after the trip.</div>
+            <div className="d d-l" style={{ margin: "4px 0" }}>{T.total ? usd(Math.abs(tab.total)) : usd(tab.food + tab.booze)}{T.total ? "" : " + fuel"}</div>
+            <div style={{ fontSize: 14, opacity: 0.85 }}>
+              {me.hasCar ? "Food is free, you're driving" : `$${TRIP.foodBudget} food`}{me.optInBooze ? ` + $${TRIP.boozeBudget} booze kitty` : ""}, plus an even share of fuel and tolls{tab.total < 0 ? ". You're owed this" : ""}. Settled up after the trip.
+            </div>
           </div>
         </section>
 
