@@ -113,3 +113,12 @@ The current map comes from `scripts/compose4.py`, using the same Monge art as v3
   - The span between the anchorages is a straight line, and the curves leave each end along the deck.
 - **The bridge:** native vector in International Orange (#e3562a) with ink outlines, matching the route and plates: two Art-Deco towers (legs plus three crossbeams), the main cable drape and hangers. It's drawn at poster scale (towers 80 units tall) so it reads at 390px. The route runs over the deck.
 - **Verification:** `scripts/verify_route.py` samples the route every frame unit (1,155 samples). It classifies each sample against the raster's water (plus the strait cut) and fails on any water outside the bridge span. Result: 0 off-bridge samples on water, and the span crosses the strait (18 of 77 span samples over water; the rest are the approaches). The evidence overlay is `map/poster/route-check.png`. Green is on land, magenta is the bridge span, and cyan rings are the real coastline vertices.
+
+**v4 bridge redraw.** The first v4 bridge stacked its towers diagonally and read as scribble, so it was redrawn as one deliberate drawing:
+- **Deck:** straight, from the SF-tip anchorage (752,1118) to the Marin-tip anchorage (686,1068). It's the route's own width (8 orange inside a 3.5 ink edge), so the route stops at each anchorage and flows onto it.
+- **Towers:** exactly two, upright in screen space, at 28% and 72% of the span. Each is 56 units tall, with stepped Art-Deco legs and four portal struts.
+- **Cable:** one main cable, made of two side spans plus a main-span catenary with its low point at mid-span, and five vertical hangers.
+- **Strokes:** International Orange with a thin ink outline, single-pass paths, no blur.
+- **Strait:** widened slightly so water clearly joins ocean and bay on both sides of the deck.
+
+`verify_route.py` now checks the route plus the deck line: 0 of 1,174 samples are on water off the bridge, and 30 deck samples are over the strait.

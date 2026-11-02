@@ -9,7 +9,7 @@ from geo import P, OCEAN, BAY
 from matplotlib.path import Path as MPath
 final, ras, out = sys.argv[1:4]
 src = Image.open(ras).convert('RGB'); KR = 1024 / 1000
-strait = MPath([(684,1086),(724,1085),(752,1080),(752,1101),(724,1100),(684,1104)])
+strait = MPath([(680,1085),(724,1084),(758,1078),(758,1103),(724,1102),(680,1106)])
 def water(x, y):
     if strait.contains_point((x, y)): return True
     r, g, b = src.getpixel((int(x * KR), int(y * KR)))
@@ -38,6 +38,8 @@ def on_span(p):
     return 0 <= t <= 1 and abs((p[0]-sx)*dy - (p[1]-sy)*dx) / math.hypot(dx, dy) < 1.5
 
 pts = samples(c.route)
+# The route stops at the anchorages and the deck carries it, so check the deck line as the span.
+pts += samples(f'M{c.BRIDGE_S[0]},{c.BRIDGE_S[1]} L{c.BRIDGE_N[0]},{c.BRIDGE_N[1]}')
 bad = [p for p in pts if water(*p) and not on_span(p)]
 span = [p for p in pts if on_span(p)]
 span_water = [p for p in span if water(*p)]

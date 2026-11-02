@@ -44,7 +44,7 @@ SOUTH, NORTH = 1, 2   # indices of the bridge anchorages in ROAD
 
 # The art drew the Golden Gate about 40px south of the projection, so register the route to the art with a
 # local displacement field: control points measured on raster-v5 (scripts/gridcrop.py), Gaussian falloff.
-BRIDGE_S, BRIDGE_N = (738.0, 1124.0), (694.0, 1062.0)   # anchorages on the art's SF tip and Marin headland (poster-scale span)
+BRIDGE_S, BRIDGE_N = (752.0, 1118.0), (686.0, 1068.0)   # anchorages on the art's SF tip and Marin headland (poster-scale span)
 CONTROLS = [(P(*ROAD[SOUTH]), BRIDGE_S), (P(*ROAD[NORTH]), BRIDGE_N), (P(*ROAD[0]), (786.0, 1170.0))]
 def register(p, sigma=60.0):
     import math
@@ -62,7 +62,8 @@ deck = (BRIDGE_N[0] - BRIDGE_S[0], BRIDGE_N[1] - BRIDGE_S[1])
 a, b = ROUTE_XY[SOUTH - 1], ROUTE_XY[NORTH + 1]
 head = smooth(ROUTE_XY[:SOUTH + 1], after=(a[0] + 1.6 * deck[0], a[1] + 1.6 * deck[1]))
 tail = smooth(ROUTE_XY[NORTH:], before=(b[0] - 1.6 * deck[0], b[1] - 1.6 * deck[1]))
-route = head + f' L{BRIDGE_N[0]},{BRIDGE_N[1]} ' + tail[tail.index('C'):]
+# The route stops at each anchorage; the bridge deck carries it across the strait.
+route = head + ' ' + tail
 sf, dil = ROUTE_XY[0], ROUTE_XY[-1]
 DOME = (264, 371)
 
@@ -75,36 +76,46 @@ def plate(text, x, y, anchor):
             f'<text x="{x0 + 12:.0f}" y="{y + SIZE*0.36:.0f}" font-size="{SIZE}" fill="{CREAM}">{text}</text>')
 
 # The art closed the Golden Gate with a sandy neck; cut the strait back in (real width ~1.6 km = ~20 px here).
-CHANNEL = 'M684,1086 C700,1088 712,1087 724,1085 C732,1083 740,1081 752,1080 L752,1101 C740,1101 732,1100 724,1100 C712,1101 700,1103 684,1104 Z'
-SHORES = 'M703,1087.6 C712,1087 718,1086 731,1083.6 M703,1102.4 C712,1101.2 718,1100.2 731,1100'
+CHANNEL = 'M680,1085 C698,1087 712,1086 724,1084 C734,1082 744,1080 758,1078 L758,1103 C744,1102 734,1102 724,1102 C712,1103 698,1105 680,1106 Z'
+SHORES = 'M701,1086.4 C712,1086 720,1085 735,1081.8 M701,1104.6 C712,1103.4 720,1102.6 735,1102.2'
 
 def bridge():
-    """Golden Gate Bridge in International Orange: deck on the route, two Art-Deco towers, main cable drape."""
-    (sx, sy), (nx, ny) = BRIDGE_S, BRIDGE_N; H = 80.0; ORANGE = '#e3562a'
+    """Golden Gate Bridge, International Orange with a thin ink outline: a straight deck from anchorage to
+    anchorage, two upright Art-Deco towers at 28% and 72% of the span, one main cable, vertical hangers."""
+    (sx, sy), (nx, ny) = BRIDGE_S, BRIDGE_N
+    ORANGE, H, LINE = '#e3562a', 56.0, 1.4
     at = lambda t: (sx + (nx - sx) * t, sy + (ny - sy) * t)
-    t1, t2 = at(0.24), at(0.76); top1, top2 = (t1[0], t1[1] - H), (t2[0], t2[1] - H)
-    mid = ((top1[0] + top2[0]) / 2, (top1[1] + top2[1]) / 2 + H * 0.62)
-    cable = (f'M{sx:.1f},{sy - 3:.1f} Q{(sx + top1[0]) / 2 + 1:.1f},{(sy + top1[1]) / 2 + 6:.1f} {top1[0]:.1f},{top1[1]:.1f}'
-             f' Q{2 * mid[0] - (top1[0] + top2[0]) / 2:.1f},{2 * mid[1] - (top1[1] + top2[1]) / 2:.1f} {top2[0]:.1f},{top2[1]:.1f}'
-             f' Q{(nx + top2[0]) / 2 - 1:.1f},{(ny + top2[1]) / 2 + 6:.1f} {nx:.1f},{ny - 3:.1f}')
+    deck_y = lambda x: sy + (ny - sy) * (x - sx) / (nx - sx)
+    # deck: the route's own width (8 orange inside a 3.5 ink edge) so the route flows onto it without a step
+    L = ((nx - sx) ** 2 + (ny - sy) ** 2) ** 0.5; ox, oy = -(ny - sy) / L * 5.75, (nx - sx) / L * 5.75
+    deck = f'M{sx+ox:.1f},{sy+oy:.1f} L{nx+ox:.1f},{ny+oy:.1f} L{nx-ox:.1f},{ny-oy:.1f} L{sx-ox:.1f},{sy-oy:.1f} Z'
+    b1, b2 = at(0.28), at(0.72)
+    top1, top2 = (b1[0], b1[1] - H), (b2[0], b2[1] - H)
+    low = at(0.5); low = (low[0], low[1] - H * 0.22)
+    ctrl = (2 * low[0] - (top1[0] + top2[0]) / 2, 2 * low[1] - (top1[1] + top2[1]) / 2)
+    side = lambda a, t: f'Q{(a[0] + t[0]) / 2:.1f},{max(a[1], t[1]) - 4:.1f} {t[0]:.1f},{t[1]:.1f}'
+    cable = (f'M{sx:.1f},{sy - 3:.1f} ' + side((sx, sy - 3), top1)
+             + f' Q{ctrl[0]:.1f},{ctrl[1]:.1f} {top2[0]:.1f},{top2[1]:.1f} ' + side(top2, (nx, ny - 3)))
     hangers = ''
-    for i in range(1, 6):
-        t = 0.24 + 0.52 * i / 6; d = at(t)
-        u = i / 6; cy = (1 - u) ** 2 * top1[1] + 2 * u * (1 - u) * (2 * mid[1] - (top1[1] + top2[1]) / 2) + u * u * top2[1]
-        hangers += f'<line x1="{d[0]:.1f}" y1="{d[1] - 2:.1f}" x2="{d[0]:.1f}" y2="{cy + 1:.1f}"/>'
+    for k in range(1, 6):
+        u = k / 6
+        cx = (1-u)**2 * top1[0] + 2*u*(1-u) * ctrl[0] + u*u * top2[0]
+        cy = (1-u)**2 * top1[1] + 2*u*(1-u) * ctrl[1] + u*u * top2[1]
+        hangers += f'M{cx:.1f},{cy:.1f} V{deck_y(cx) - 5.5:.1f} '
     def tower(base):
-        x, y = base; w = 4.6; gap = 6.6
-        legs = ''.join(f'<rect x="{x + o - w / 2:.1f}" y="{y - H:.1f}" width="{w}" height="{H + 1:.1f}"/>' for o in (-gap, gap))
-        beams = ''.join(f'<rect x="{x - gap - w / 2:.1f}" y="{y - H * f:.1f}" width="{2 * gap + w:.1f}" height="3.4"/>' for f in (0.98, 0.72, 0.46))
-        return legs + beams
-    towers = tower(t1) + tower(t2)
-    return (f'<g id="golden-gate-bridge">'
-            f'<g fill="none" stroke="{INK}" stroke-width="5.4" stroke-linecap="round"><path d="{cable}"/></g>'
-            f'<g stroke="{INK}" stroke-width="2.6">{hangers}</g>'
-            f'<g fill="{INK}" stroke="{INK}" stroke-width="2.2" stroke-linejoin="round">{towers}</g>'
-            f'<g fill="none" stroke="{ORANGE}" stroke-width="2.8" stroke-linecap="round"><path d="{cable}"/></g>'
-            f'<g stroke="{ORANGE}" stroke-width="0.9">{hangers}</g>'
-            f'<g fill="{ORANGE}">{towers}</g></g>')
+        x, y = base; g = 4.6; y = y + 1.5
+        def leg(sign):
+            e = x + sign * g / 2; out = lambda w: e + sign * w
+            pts = [(e, y), (e, y - H), (out(2.8), y - H), (out(2.8), y - 0.8 * H), (out(3.5), y - 0.8 * H),
+                   (out(3.5), y - 0.55 * H), (out(4.3), y - 0.55 * H), (out(4.3), y)]
+            return 'M' + ' L'.join(f'{a:.1f},{b:.1f}' for a, b in pts) + ' Z'
+        struts = ''.join(f'M{x - g/2:.1f},{y - H*f:.1f} H{x + g/2:.1f} V{y - H*f + 2.4:.1f} H{x - g/2:.1f} Z' for f in (0.97, 0.76, 0.52, 0.28))
+        return leg(-1) + ' ' + leg(1) + ' ' + struts
+    return (f'<g id="golden-gate-bridge" stroke-linejoin="miter">'
+            f'<path d="{cable}" fill="none" stroke="{ORANGE}" stroke-width="2.8" stroke-linecap="round"/>'
+            f'<path d="{hangers}" fill="none" stroke="{ORANGE}" stroke-width="1.1"/>'
+            f'<path d="{deck}" fill="{ORANGE}" stroke="{INK}" stroke-width="3.5"/>'
+            f'<path d="{tower(b1)} {tower(b2)}" fill="{ORANGE}" stroke="{INK}" stroke-width="{LINE}"/></g>')
 
 def marker(p):
     return (f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="12" fill="{CREAM}" stroke="{INK}" stroke-width="5"/>'
@@ -138,7 +149,7 @@ svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width=
     <ellipse cx="{DOME[0]}" cy="{DOME[1] + 4}" rx="100" ry="66" fill="url(#dome-fade)"/>
     <g filter="url(#soft)"><path d="M352,410 L346,330 L380,190 L425,80 L470,60 L488,90 L440,200 L408,330 L404,410 Z" fill="#fff"/></g>
   </mask>
-  <linearGradient id="strait-water" gradientUnits="userSpaceOnUse" x1="684" y1="0" x2="752" y2="0">
+  <linearGradient id="strait-water" gradientUnits="userSpaceOnUse" x1="680" y1="0" x2="758" y2="0">
     <stop offset="0.3" stop-color="#1d4b57"/><stop offset="0.85" stop-color="#3c6f79"/>
   </linearGradient>
   <filter id="feather" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
