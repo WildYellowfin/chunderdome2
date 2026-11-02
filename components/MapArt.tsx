@@ -1,7 +1,7 @@
 import Image from "next/image";
 import poster from "@/public/route-map.png";
 
-// The vector original is public/route-map.svg (1.9 MB). Phones get the PNG
+// The vector original is public/route-map.svg (1.5 MB). Phones get the PNG
 // through next/image, which serves resized WebP/AVIF.
 export default function MapArt() {
   return (

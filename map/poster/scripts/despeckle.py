@@ -1,5 +1,5 @@
 # Vector cleanup of a Monge flat trace: drop tiny single-contour shapes (grain speckle).
-# usage: despeckle.py in.svg out.svg min_area
+# usage: despeckle.py in.svg out.svg min_area  (stray water-coloured specks up to 8x that area also go)
 import re, sys
 TOK = re.compile(r'[MmCcLlHhVvSsQqZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?')
 ARGS = dict(M=2, L=2, C=6, S=4, Q=4, H=1, V=1, Z=0)
@@ -23,12 +23,14 @@ def bbox(d):
         xs.append(x); ys.append(y)
     return (max(xs) - min(xs)) * (max(ys) - min(ys)), subpaths
 
-src, out, amin = sys.argv[1], sys.argv[2], float(sys.argv[3])
-s = open(src).read(); dropped = 0
-def keep(m):
-    global dropped
-    area, sub = bbox(m.group(1))
-    if sub == 1 and area < amin: dropped += 1; return ''
-    return m.group(0)
-s = re.sub(r'<path d="([^"]*)"[^>]*/>\n?', keep, s)
-open(out, 'w').write(s); print('dropped', dropped)
+if __name__ == "__main__":
+  src, out, amin = sys.argv[1], sys.argv[2], float(sys.argv[3])
+  s = open(src).read(); dropped = 0
+  def keep(m):
+      global dropped
+      area, sub = bbox(m.group(1))
+      water = re.search(r'fill="#(1d4b57|3c6f79)"', m.group(0))
+      if sub == 1 and (area < amin or (water and area < amin * 8)): dropped += 1; return ''
+      return m.group(0)
+  s = re.sub(r'<path d="([^"]*)"[^>]*/>\n?', keep, s)
+  open(out, 'w').write(s); print('dropped', dropped)

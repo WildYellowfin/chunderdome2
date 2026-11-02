@@ -42,3 +42,30 @@ I used the newcomer CLI in the local checkout `~/Documents/Monge-desk` (`apps/su
 - **Geography:** the shorelines are hand-plotted approximations of the real coast at this scale, not survey data.
 - **Bodega Bay** sits near the horizon of the art, at the top left, and is not labelled, to keep the labels few.
 - **Golden Gate:** there's only a small ink tower glyph from the art where the route crosses. I dropped my own bridge marks because they read as noise at this scale.
+
+# v2 (after James's review)
+
+The current `route-map.svg` and `route-map.png` come from **map-v4** and `scripts/compose2.py`. Everything above describes v1.
+
+**Review notes and what changed:**
+
+- **Dome looked glued on (clipping the ocean and route).** The dome is now painted *in* the terrain, in the same Monge image pass. `guide-v4.svg` marks its spot on the dunes north of the road, so the route and markers never touch it. Detail around the dome comes from a 16-colour cartoon retrace of the same raster, cut to the dome (`cutregion.py`) and feathered in. It's exactly aligned, because both traces come from the same pixels. A soft vector glow sits under it. A standalone dome (`prompt-dome-v2.txt`) read as a sticker again, so I rejected it.
+- **Sunset looked wrong.** The sky is one split-fountain dusk gradient, clipped along the art's real skyline (`skyline.mjs` measures it from the raster). The sun is half-sunk into the sea horizon, above the art's own reflection strokes. The stacked stripes and the pasted semicircle are gone.
+- **Recolouring flattened the ridges.** The v4 prompt asks for near, mid and far ridgelines with strong value steps. A cream haze layer (opacity 0.62 at the horizon, fading to 0 by mid-map) keeps far ridges pale and near ridges dark olive.
+- **Labels.** "FRI 6 PM" and "PACIFIC OCEAN" are removed. The three plates are the same size, vertically centred on (or hung just below) their markers, and clear of the route.
+- **Other quirks.**
+  - Speckle: `despeckle.py` and `pinholes.py` (14k pinholes filled) remove the trace grain.
+  - Stray teal blobs in the ridges are removed.
+  - The route is a Catmull-Rom curve, with no kinks.
+  - Bathymetry offsets the coastline the art actually drew (`coast.mjs` scans the open Pacific from the raster), so the contours never cut across land.
+
+**Monge calls in v2:**
+- `picture make map-v3` (rejected: coast drifted about 25px, flat land).
+- `picture make map-v4` (kept).
+- `picture retrace map-v4 --profile flat --colours 10`, then `picture recolour` ×10.
+- `picture retrace map-v4 --profile cartoon --colours 16`, then `picture recolour` ×14, used for the dome detail only.
+- `picture make dome2` (rejected).
+
+**Rebuild:**
+1. `python3 scripts/compose2.py` writes `map.svg` to the folder above `scripts/`.
+2. `scripts/render.sh map.svg map.png 1600 2000` renders it with headless Chrome, for macOS fonts.
