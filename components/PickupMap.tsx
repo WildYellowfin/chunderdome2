@@ -38,7 +38,8 @@ export default function PickupMap({ value, onChange }: { value: LatLng | null; o
         container: box.current,
         style: mapStyle,
         center: [start.lng, start.lat],
-        zoom: value ? 14.5 : 13.2,
+        // Default view: the whole peninsula, ocean to bay, Clay House in the middle.
+        zoom: value ? 13.5 : 11,
         minZoom: 9,
         maxZoom: 17.5,
         attributionControl: false,

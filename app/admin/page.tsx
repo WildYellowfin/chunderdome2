@@ -154,19 +154,14 @@ export default async function AdminPage() {
           <section className="block">
             <h2 className="d d-m" style={{ marginBottom: 12 }}>Gear</h2>
             <ul className="list">
-              {L.gear.bring.filter((g) => g.essential).map((g) => (
-                <li key={g.key}>
-                  <div className="row spread"><strong>{g.label}</strong><span className={`tag ${g.without.length ? "warn" : "ok"}`}>{g.total} for {L.people.length}</span></div>
-                  {g.without.length > 0 && <div className="hint" style={{ marginTop: 2 }}>None: {g.without.map((p) => p.name).join(", ")}</div>}
-                </li>
-              ))}
-              {L.gear.bring.filter((g) => !g.essential && g.total > 0).map((g) => (
+              {L.gear.bring.filter((g) => g.total > 0).map((g) => (
                 <li key={g.key}>
                   <div className="row spread"><strong>{g.label}</strong><span className="d d-s">{g.total}</span></div>
                   <div className="hint" style={{ marginTop: 2 }}>{g.owners.map((o) => `${o.name}${o.n > 1 ? ` ×${o.n}` : ""}`).join(", ")}</div>
                 </li>
               ))}
             </ul>
+            {L.gear.bring.every((g) => g.total === 0) && <p className="muted">Nobody has listed gear yet.</p>}
           </section>
 
           <section className="block">

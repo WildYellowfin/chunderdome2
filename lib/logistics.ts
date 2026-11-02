@@ -66,7 +66,7 @@ export function computeLogistics(all: Profile[]) {
     pads: { need: needPad.length, spare: sum("sleepingPad"), who: needPad },
     lend: LEND_GEAR.map((g) => ({ ...g, total: sum(g.key), owners: owners(g.key) })),
     tents,
-    bring: BRING_GEAR.map((g) => ({ ...g, total: sum(g.key), owners: owners(g.key), without: g.essential ? people.filter((p) => !(p.extras[g.key] || 0)) : [] })),
+    bring: BRING_GEAR.map((g) => ({ ...g, total: sum(g.key), owners: owners(g.key) })),
   };
 
   // Sleeping space
