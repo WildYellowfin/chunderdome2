@@ -76,14 +76,16 @@ export async function requireAdmin() {
 // group chat. With neither set, sign-in only needs a phone number, which is
 // fine locally but means anyone could claim any number.
 
-export type VerifyMode = "sms" | "trip-code" | "open";
+export type VerifyMode = "sms" | "trip-code" | "open" | "closed";
 
 export function verifyMode(): VerifyMode {
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID) {
     return "sms";
   }
   if (process.env.TRIP_CODE) return "trip-code";
-  return "open";
+  // Open sign-in would let anyone type an owner's number and become admin, so
+  // a production deploy with neither set refuses to sign anyone in.
+  return process.env.NODE_ENV === "production" ? "closed" : "open";
 }
 
 function twilioAuth() {
@@ -99,6 +101,7 @@ export async function sendSmsCode(phone: string): Promise<boolean> {
       body: new URLSearchParams({ To: phone, Channel: "sms" }),
     },
   );
+  if (!res.ok) console.error("Twilio send failed", res.status, await res.text().catch(() => ""));
   return res.ok;
 }
 

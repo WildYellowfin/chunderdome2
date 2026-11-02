@@ -99,7 +99,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           </ul>
           <div className="note ink" style={{ marginTop: 16 }}>
             <div className="mono" style={{ opacity: 0.7 }}>Your share</div>
-            <div className="d d-l" style={{ margin: "4px 0" }}>{T.total ? usd(Math.abs(tab.total)) : usd(tab.food + tab.booze)}{T.total ? "" : " + fuel"}</div>
+            <div className="d d-l" style={{ margin: "4px 0" }}>{T.total ? usd(Math.abs(tab.total)) : tab.food + tab.booze ? usd(tab.food + tab.booze) : "Free"}{T.total ? "" : " + fuel"}</div>
             <div style={{ fontSize: 14, opacity: 0.85 }}>
               {me.hasCar ? "Food is free, you're driving" : `$${TRIP.foodBudget} food`}{me.optInBooze ? ` + $${TRIP.boozeBudget} booze kitty` : ""}, plus an even share of fuel and tolls{tab.total < 0 ? ". You're owed this" : ""}. Settled up after the trip.
             </div>

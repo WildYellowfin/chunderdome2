@@ -68,6 +68,7 @@ function fileStore(): Store {
     }
   }
   async function write(d: FileShape) {
+    if (process.env.VERCEL) throw new Error("No Redis configured. Add the Upstash for Redis integration in Vercel's Storage tab, then redeploy.");
     await fs.mkdir(path.dirname(file), { recursive: true });
     await fs.writeFile(file, JSON.stringify(d, null, 2));
   }
