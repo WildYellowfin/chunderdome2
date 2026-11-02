@@ -69,3 +69,25 @@ The current `route-map.svg` and `route-map.png` come from **map-v4** and `script
 **Rebuild:**
 1. `python3 scripts/compose2.py` writes `map.svg` to the folder above `scripts/`.
 2. `scripts/render.sh map.svg map.png 1600 2000` renders it with headless Chrome, for macOS fonts.
+
+# v3 (after James's second review)
+
+The current map comes from **map-v5** and `scripts/compose3.py`.
+
+**Review notes and what changed:**
+
+- **Drop Petaluma.** The marker and label are removed. The route keeps running SF → Golden Gate → US-101, then west on Tomales Rd, now through Tomales itself, and on to Dillon Beach.
+- **The sun reflected on land.** The cause was in the art: in v4 the strip under the sun was beach. `guide-v5.svg` now extends open Pacific along the top-left horizon, and the prompt pins the glitter path to the water only. The cream haze layer is masked off the water too, so the sea can't read as land.
+- **Model rockets.** A model rocket is mid-launch from the dunes just east of the dome. It's painted in the same Monge image pass as the terrain (`prompt-v5.txt`, with its smoke arc marked in the guide), so it matches the print style. The rocket and the upper trail sit above the vector sky. It stays clear of the route, the labels and the title.
+- **Dome sharper.** There's no glow overlay now. The dome and rocket detail comes from the 16-colour cartoon retrace with a tighter feather, and the darkest struts are inked.
+- **Clean-up.**
+  - `detail.py` drops the traced sky inside the detail cut, so there's no halo around the trail.
+  - `inland_water.py` drops teal specks that sit on land in the raster.
+  - The skyline is de-spiked under the rocket trail.
+
+**Monge calls in v3:**
+- `picture make map-v5` (kept).
+- `picture retrace map-v5 --profile flat --colours 10`, then `picture recolour` ×10.
+- `picture retrace map-v5 --profile cartoon --colours 16`, then `picture recolour` ×15, used for the dome and rocket only.
+
+**Rebuild:** run `python3 scripts/compose3.py`, then `scripts/render.sh map.svg map.png 1600 2000`.
