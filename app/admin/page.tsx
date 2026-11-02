@@ -181,23 +181,25 @@ export default async function AdminPage() {
           <p className="muted" style={{ fontSize: 15 }}>
             Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across {L.people.length}. Drivers eat free, and what they spent comes off their total.
           </p>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Name</th><th>Venmo</th><th className="num">Food</th><th className="num">Booze</th><th className="num">Transport</th><th className="num">Total</th></tr></thead>
-              <tbody>
-                {[...L.money.bills].sort((a, b) => a.p.name.localeCompare(b.p.name)).map((b) => (
-                  <tr key={b.p.phone}>
-                    <td>{b.p.name}{b.p.hasCar && <span className="faint"> · driver</span>}</td>
-                    <td>{b.p.venmo ? <a href={`https://venmo.com/u/${encodeURIComponent(b.p.venmo)}`} target="_blank" rel="noreferrer">@{b.p.venmo}</a> : <span className="faint">None</span>}</td>
-                    <td className="num">{b.p.hasCar ? <span className="faint">Free</span> : usd(b.food)}</td>
-                    <td className="num">{b.booze ? usd(b.booze) : "–"}</td>
-                    <td className="num">{usd(b.transport)}{b.spent > 0 && <div className="faint">−{usd(b.spent)} spent</div>}</td>
-                    <td className="num"><strong className={b.total < 0 ? "red" : ""}>{b.total < 0 ? `Owed ${usd(-b.total)}` : usd(b.total)}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="list">
+            {[...L.money.bills].sort((a, b) => a.p.name.localeCompare(b.p.name)).map((b) => (
+              <li key={b.p.phone}>
+                <div className="row spread" style={{ alignItems: "baseline", flexWrap: "nowrap" }}>
+                  <strong>{b.p.name}{b.p.hasCar && <span className="faint" style={{ fontWeight: 400 }}> · driver</span>}</strong>
+                  <strong className={`d d-s ${b.total < 0 ? "red" : ""}`} style={{ whiteSpace: "nowrap" }}>{b.total < 0 ? `Owed ${usd(-b.total)}` : usd(b.total)}</strong>
+                </div>
+                <div className="hint" style={{ marginTop: 2 }}>
+                  {b.p.hasCar ? "Food free" : `Food ${usd(b.food)}`}
+                  {b.booze > 0 && ` · booze ${usd(b.booze)}`}
+                  {` · transport ${usd(b.transport)}`}
+                  {b.spent > 0 && ` · spent −${usd(b.spent)}`}
+                </div>
+                <div className="hint" style={{ marginTop: 2 }}>
+                  {b.p.venmo ? <a href={`https://venmo.com/u/${encodeURIComponent(b.p.venmo)}`} target="_blank" rel="noreferrer">@{b.p.venmo}</a> : "No Venmo"}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="block">

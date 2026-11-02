@@ -2,14 +2,14 @@
 import { useActionState } from "react";
 import { startSignIn, verifySignIn, type FormState } from "@/app/actions";
 
-export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" }) {
+export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" | "closed" }) {
   const [state, action, pending] = useActionState<FormState, FormData>(startSignIn, undefined);
   return (
     <form action={action}>
       {state?.error && <div className="error">{state.error}</div>}
       <div className="field">
         <label htmlFor="phone">Your phone number</label>
-        <input id="phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="(415) 555-0123" required />
+        <input key={state?.phone} id="phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="(415) 555-0123" defaultValue={state?.phone} required />
         <div className="hint">So we can text the crew about rides and timing.</div>
       </div>
       {mode === "trip-code" && (

@@ -16,23 +16,25 @@ import { db, getOrCreateProfile, normalizePhone, ownerPhones } from "@/lib/db";
 import { DIETARY_OPTIONS, EXTRA_GEAR, placeName } from "@/lib/trip";
 import type { Profile, Trunk } from "@/lib/types";
 
-export type FormState = { error?: string } | undefined;
+export type FormState = { error?: string; phone?: string } | undefined;
 
 // ---- Sign in ----------------------------------------------------------------
 
 export async function startSignIn(_: FormState, form: FormData): Promise<FormState> {
-  const phone = normalizePhone(String(form.get("phone") || ""));
-  if (!phone) return { error: "That doesn't look like a phone number. Try something like (415) 555-0123." };
+  const typed = String(form.get("phone") || "");
+  const phone = normalizePhone(typed);
+  if (!phone) return { error: "That doesn't look like a phone number. Try something like (415) 555-0123.", phone: typed };
   const mode = verifyMode();
 
+  if (mode === "closed") return { error: "Sign-in isn't set up yet. Tell the organiser.", phone: typed };
   if (mode === "trip-code") {
     if (!checkTripCode(String(form.get("tripCode") || ""))) {
-      return { error: "Wrong trip code. It's in the group chat." };
+      return { error: "Wrong trip code. It's in the group chat.", phone: typed };
     }
   }
   if (mode === "sms") {
-    const ok = await sendSmsCode(phone);
-    if (!ok) return { error: "Couldn't send a text to that number. Double-check it?" };
+    const ok = await sendSmsCode(phone).catch(() => false);
+    if (!ok) return { error: "Couldn't send a text to that number. Double-check it?", phone: typed };
     redirect(`/login/verify?phone=${encodeURIComponent(phone)}`);
   }
   await setSession(phone);
@@ -44,7 +46,7 @@ export async function verifySignIn(_: FormState, form: FormData): Promise<FormSt
   const phone = normalizePhone(String(form.get("phone") || ""));
   const code = String(form.get("code") || "").trim();
   if (!phone || !code) return { error: "Enter the code we texted you." };
-  if (!(await checkSmsCode(phone, code))) return { error: "That code didn't work. Try again, or resend." };
+  if (!(await checkSmsCode(phone, code).catch(() => false))) return { error: "That code didn't work. Try again, or resend." };
   await setSession(phone);
   await getOrCreateProfile(phone);
   redirect("/");
@@ -180,5 +182,6 @@ export async function removePerson(form: FormData) {
     if (p.rideWith === phone && p.phone !== phone) await db.saveProfile({ ...p, rideWith: null });
   }
   await db.deleteProfile(phone);
+  if (!ownerPhones().includes(phone)) await db.removeAdmin(phone);
   revalidatePath("/admin");
 }
