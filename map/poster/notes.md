@@ -91,3 +91,25 @@ The current map comes from **map-v5** and `scripts/compose3.py`.
 - `picture retrace map-v5 --profile cartoon --colours 16`, then `picture recolour` ×15, used for the dome and rocket only.
 
 **Rebuild:** run `python3 scripts/compose3.py`, then `scripts/render.sh map.svg map.png 1600 2000`.
+
+# v4 (Golden Gate Bridge and a correct crossing)
+
+The current map comes from `scripts/compose4.py`, using the same Monge art as v3 (map-v5).
+
+**James's review: no bridge, and the route crossed in the wrong place.**
+
+**Why:**
+- The art (map-v5) drew the Golden Gate about 40px south of the lat/lon projection.
+- It also closed the strait with a sandy neck, so the Pacific and the bay never met.
+- The v3 route used raw projected points, so it jumped across open bay water east of where the art's strait would be.
+
+**Fix:**
+- **The strait:** cut back into the art as a vector edit. The `CHANNEL` path is ~16px wide (the real strait is ~1.6 km, about 20px here), with a gradient from Pacific teal to bay teal and cream shore lines. It sits at the narrow gap between the art's NW tip of SF and the Marin Headlands. I measured that with `scripts/gridcrop.py`, which overlays a frame-unit grid on the raster.
+- **The route:** built from real road waypoints and projected with the same transform as the guide:
+  - SF (37.765,-122.42), then the south anchorage (37.8078,-122.4750) and the north anchorage (37.8324,-122.4795).
+  - US-101: Marin City, Corte Madera, San Rafael, Novato, Petaluma.
+  - Then Bodega Ave/Tomales Rd through Tomales, and Dillon Beach Rd to Dillon Beach.
+  - It's registered to the art with a local Gaussian displacement field. The control points are the two anchorages and SF, measured on the raster, so points far from the Golden Gate don't move.
+  - The span between the anchorages is a straight line, and the curves leave each end along the deck.
+- **The bridge:** native vector in International Orange (#e3562a) with ink outlines, matching the route and plates: two Art-Deco towers (legs plus three crossbeams), the main cable drape and hangers. It's drawn at poster scale (towers 80 units tall) so it reads at 390px. The route runs over the deck.
+- **Verification:** `scripts/verify_route.py` samples the route every frame unit (1,155 samples). It classifies each sample against the raster's water (plus the strait cut) and fails on any water outside the bridge span. Result: 0 off-bridge samples on water, and the span crosses the strait (18 of 77 span samples over water; the rest are the approaches). The evidence overlay is `map/poster/route-check.png`. Green is on land, magenta is the bridge span, and cyan rings are the real coastline vertices.

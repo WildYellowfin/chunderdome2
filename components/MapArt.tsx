@@ -8,7 +8,7 @@ export default function MapArt() {
     <div className="poster-frame">
       <Image
         src={poster}
-        alt="Screen-print poster map: Chunderdome II, from San Francisco over the Golden Gate, north on 101 and west through Tomales to the dome at Dillon Beach, where a model rocket is launching at sunset"
+        alt="Screen-print poster map: Chunderdome II, from San Francisco across the Golden Gate Bridge, north on 101 and west through Tomales to the dome at Dillon Beach, where a model rocket is launching at sunset"
         priority
         placeholder="blur"
         sizes="(max-width: 560px) 100vw, 560px"
