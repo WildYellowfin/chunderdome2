@@ -156,6 +156,7 @@ The current map comes from `scripts/compose6.py`, using the same Monge art as v5
 **Fix:**
 - **One water colour:** the ocean, the bay, Tomales Bay and the Golden Gate strait are all TEAL (#1d4b57).
 - **Trees:** small TEAL shapes on land become deep forest green (#2f3a22). The art's own water bits at the Golden Gate stay TEAL.
+- **Dome:** the same blue edged the dome's struts and base in the detail trace. Those shapes are now forest green, and the darkest ones a deeper green-black (#232a19).
 - **Specks:** `scripts/specks.py` renders the terrain with water in magenta and labels the connected water regions. Only one large region is real water; the other 121 are specks. Each speck is patched with the land colour in a ring around it.
 - **Glints:** `scripts/glints.py` samples the source raster under each traced shape near the sun. A shape over the sea becomes a red glint (#dd4326) or open water, depending on what the raster shows there.
 - **Haze:** the haze is now kept off all open water near the horizon, glints included. Before, it was kept off only the scanned coastline, which missed the strip by the beach.

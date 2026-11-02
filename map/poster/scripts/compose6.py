@@ -42,6 +42,15 @@ except FileNotFoundError: SPECKS = {'patches': [], 'sea_top': ''}
 patches = ''.join(f'<path d="{p["d"]}" fill="{p["fill"]}"/>' for p in SPECKS['patches'])
 # The painted dome and rocket, from Monge's 16-colour cartoon retrace of the same raster (exactly aligned).
 dome_detail = re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', open(f'{D}/sources/detail-v5.svg').read(), flags=re.S)
+# The same darkest class edged the dome's struts and base in ocean blue in the 16-colour detail trace:
+# small dark-teal shapes on the dunes become forest green and the darkest ones a deeper green-black.
+def _detail(m):
+    d, fill = m.group(1), m.group(2)
+    if fill not in ('#1d4b57', '#18343d'): return m.group(0)
+    a, b, c, e = path_bbox(d)
+    if b < 300 or (c - a) * (e - b) > 40000: return m.group(0)
+    return m.group(0).replace(fill, FOREST if fill == '#1d4b57' else '#232a19')
+dome_detail = re.sub(r'<path d="([^"]*)" fill="(#[0-9a-f]{6})"', _detail, dome_detail)
 # The coastline the art actually drew: open Pacific scanned row by row from the raster (scripts/coast.mjs).
 coast = json.load(open(f'{D}/sources/coast-v5.json'))
 ocean_d = (f'M{coast[0][0]},-400 ' + ' '.join(f'L{x},{y}' for x, y in coast)
