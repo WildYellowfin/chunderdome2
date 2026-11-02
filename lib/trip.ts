@@ -16,7 +16,7 @@ export const TRIP = {
   // "A couple of smaller tents" owned by the group. Guessing 2 tents x 2 people; edit if wrong.
   groupSmallTentBeds: 4,
   rsvps: 22,
-  foodBudget: 30,
+  foodBudget: 35,
   boozeBudget: 20,
 };
 

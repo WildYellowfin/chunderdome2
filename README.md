@@ -6,7 +6,7 @@ A small Next.js app for planning the Chunderdome II camping trip to Dillon Beach
 
 **For everyone**
 - Sign in with a phone number (SMS code via Twilio Verify, or a shared trip code).
-- Six-step onboarding: name and a pickup pin on a drag-to-place map centred on Clay House (1473 Clay St), whether they'll drive (car size and trunk space), when they need to be home Sunday, sleeping bag and pad, gear to lend (bags, pads, tents with sizes), essential and useful gear they're bringing, dietary needs, optional Venmo, and the $30 food budget (free for drivers) plus an optional $20 booze kitty.
+- Six-step onboarding: name and a pickup pin on a drag-to-place map centred on Clay House (1473 Clay St), whether they'll drive (car size and trunk space), when they need to be home Sunday, sleeping bag and pad, gear to lend (bags, pads, tents with sizes), essential and useful gear they're bringing, dietary needs, optional Venmo, and the $35 food budget (free for drivers) plus an optional $20 booze kitty.
 - Drivers log fuel and tolls under Me after the trip; transport is split evenly across everyone, drivers included.
 - Trip home page: illustrated map, countdown, itinerary, meal plan, their car and carmates, and the crew.
 - A packing list built from their answers that they tick off as they go.

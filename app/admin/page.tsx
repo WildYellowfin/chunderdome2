@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db, ownerPhones } from "@/lib/db";
-import { computeLogistics, usd } from "@/lib/logistics";
+import { billNote, computeLogistics, usd, venmoLink } from "@/lib/logistics";
 import { CLAY_HOUSE, kmBetween, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
 import { addAdmin, removeAdmin, removePerson } from "@/app/actions";
 import TabBar from "@/components/TabBar";
@@ -181,6 +181,15 @@ export default async function AdminPage() {
           <p className="muted" style={{ fontSize: 15 }}>
             Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across {L.people.length}. Drivers eat free, and what they spent comes off their total.
           </p>
+          {(() => {
+            const lines = [...L.money.bills].filter((b) => b.total !== 0).sort((a, b) => a.p.name.localeCompare(b.p.name))
+              .map((b) => `${b.p.venmo ? "@" + b.p.venmo : b.p.name + " (no Venmo)"}\t${b.total < 0 ? "pay" : "request"} ${Math.abs(b.total).toFixed(2)}\t${billNote(b)}`);
+            return lines.length > 0 && (
+              <div className="row" style={{ marginBottom: 12 }}>
+                <CopyButton text={lines.join("\n")} label="Copy Venmo list" />
+              </div>
+            );
+          })()}
           <ul className="list">
             {[...L.money.bills].sort((a, b) => a.p.name.localeCompare(b.p.name)).map((b) => (
               <li key={b.p.phone}>
@@ -192,10 +201,12 @@ export default async function AdminPage() {
                   {b.p.hasCar ? "Food free" : `Food ${usd(b.food)}`}
                   {b.booze > 0 && ` · booze ${usd(b.booze)}`}
                   {` · transport ${usd(b.transport)}`}
-                  {b.spent > 0 && ` · spent −${usd(b.spent)}`}
+                  {b.spent > 0 && ` · spent\u00a0−${usd(b.spent)}`}
                 </div>
-                <div className="hint" style={{ marginTop: 2 }}>
-                  {b.p.venmo ? <a href={`https://venmo.com/u/${encodeURIComponent(b.p.venmo)}`} target="_blank" rel="noreferrer">@{b.p.venmo}</a> : "No Venmo"}
+                <div className="row" style={{ marginTop: 8, gap: 8 }}>
+                  {b.p.venmo && b.total !== 0
+                    ? <a className="btn sm ghost" href={venmoLink(b.p.venmo, b)}>{b.total < 0 ? `Pay @${b.p.venmo} ${usd(-b.total)}` : `Request ${usd(b.total)} from @${b.p.venmo}`}</a>
+                    : <span className="hint" style={{ margin: 0 }}>{b.p.venmo ? `@${b.p.venmo}` : "No Venmo"}</span>}
                 </div>
               </li>
             ))}
