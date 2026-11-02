@@ -217,7 +217,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             )}
             <div className="field">
               <label htmlFor="br">Bringing anything fun? <span className="faint">(optional)</span></label>
-              <input id="br" type="text" value={p.bringing} onChange={(e) => set("bringing", e.target.value)} placeholder="Guitar, frisbee, cards, a kite" />
+              <input id="br" type="text" value={p.bringing} onChange={(e) => set("bringing", e.target.value)} placeholder="Guitar, frisbee, cards, rocket parts" />
             </div>
           </>
         )}

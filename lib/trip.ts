@@ -36,7 +36,7 @@ export const ITINERARY: { day: string; items: { time: string; what: string; note
     items: [
       { time: "Morning", what: "Group breakfast", note: "Provided." },
       { time: "Midday", what: "Group lunch", note: "Provided." },
-      { time: "Afternoon", what: "Beach, tide pools, naps, games" },
+      { time: "Afternoon", what: "Model rocket launch", note: "Bring a rocket if you have one. Beach, tide pools and naps for the rest." },
       { time: "Evening", what: "Group dinner", note: "Provided. The big one." },
     ],
   },
@@ -108,6 +108,7 @@ export const EXTRA_GEAR: { key: string; label: string; hint?: string }[] = [
   { key: "campChair", label: "Camp chairs" },
   { key: "lantern", label: "Lanterns" },
   { key: "tent", label: "Tents", hint: "Tell us how many people they sleep below." },
+  { key: "rocket", label: "Model rockets", hint: "Plus spare engines and igniters if you have them." },
   { key: "speaker", label: "Bluetooth speakers" },
   { key: "firewood", label: "Bundles of firewood" },
 ];
