@@ -115,3 +115,26 @@ export function computeLogistics(all: Profile[]) {
     returning,
   };
 }
+
+/** What a bill is for, as a Venmo note. */
+export function billNote(b: ReturnType<typeof bill>) {
+  const parts = [b.food ? `food ${usd(b.food)}` : "", b.booze ? `booze ${usd(b.booze)}` : "", b.transport ? `fuel+tolls ${usd(b.transport)}` : "", b.spent ? `minus ${usd(b.spent)} you spent` : ""].filter(Boolean);
+  return `Chunderdome II: ${parts.join(", ")}`;
+}
+
+/**
+ * A Venmo link with the person, amount and note filled in. On a phone with
+ * Venmo installed it opens the app; elsewhere it opens venmo.com.
+ * Positive totals are requests (they owe you); negative ones are payments.
+ */
+export function venmoLink(handle: string, b: ReturnType<typeof bill>) {
+  const q = new URLSearchParams({
+    txn: b.total < 0 ? "pay" : "charge",
+    audience: "private",
+    recipients: handle,
+    amount: Math.abs(b.total).toFixed(2),
+    note: billNote(b),
+  });
+  // Venmo shows a literal "+" in notes, so encode spaces as %20.
+  return `https://venmo.com/?${q.toString().replace(/\+/g, "%20")}`;
+}
