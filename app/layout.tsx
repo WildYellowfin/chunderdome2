@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import Image from "next/image";
+import poster from "@/public/route-map.png";
 import "./globals.css";
 
 const display = Big_Shoulders({ subsets: ["latin"], variable: "--font-display", adjustFontFallback: false });
@@ -23,7 +25,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Desktop only: the poster holds the left of the screen while pages scroll beside it. */}
+        <aside className="side-poster" aria-hidden="true">
+          <Image src={poster} alt="" sizes="(min-width: 900px) 50vw, 1px" placeholder="blur" loading="eager" />
+        </aside>
+        {children}
+      </body>
     </html>
   );
 }

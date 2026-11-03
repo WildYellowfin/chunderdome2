@@ -6,7 +6,7 @@ import Masthead from "@/components/Masthead";
 export default async function LoginPage() {
   if (await sessionPhone()) redirect("/");
   return (
-    <main className="page" style={{ paddingBottom: 40 }}>
+    <main className="page login" style={{ paddingBottom: 40 }}>
       <Masthead />
       <section className="block" style={{ borderTop: 0 }}>
         <h2 className="d d-l" style={{ marginBottom: 8 }}>Confirm your spot</h2>

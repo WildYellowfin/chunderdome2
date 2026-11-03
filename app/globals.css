@@ -304,3 +304,30 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .mk-pop .maplibregl-popup-content strong { display: block; font-size: 15px; }
 .mk-pop .maplibregl-popup-content span { font-size: 13px; color: var(--ink-2); }
 .mk-pop .maplibregl-popup-tip { display: none; }
+
+/* ---------- Desktop ---------- */
+.side-poster { display: none; }
+@media (min-width: 900px) {
+  :root { --side: min(50vw, calc(100dvh * 0.8)); --top-h: 52px; }
+  /* The poster holds the left; every page except admin scrolls beside it. */
+  .side-poster { display: flex; position: fixed; inset: 0 auto 0 0; width: var(--side); background: var(--teal); align-items: center; justify-content: center; z-index: 1; }
+  .side-poster img { width: 100%; height: 100%; object-fit: contain; }
+  body:not(:has(.page.wide)) { padding-left: var(--side); }
+  body:has(.page.wide) .side-poster { display: none; }
+  .page, .flow { max-width: 640px; }
+  .page.wide { max-width: 1180px; }
+  /* The masthead's poster is already beside the content. */
+  main .poster-frame { display: none; }
+  .page.login { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; padding-top: 40px; }
+  /* The tab bar becomes a slim nav across the top of the content column. */
+  .tabbar { top: 0; bottom: auto; left: var(--side); padding-bottom: 0; border-top: 0; border-bottom: 2px solid var(--ink); }
+  body:has(.page.wide) .tabbar { left: 0; }
+  .tabbar nav { max-width: 640px; height: var(--top-h); justify-content: flex-start; gap: 6px; padding: 0 12px; }
+  body:has(.page.wide) .tabbar nav { max-width: 1180px; }
+  .tabbar a { flex: 0 0 auto; flex-direction: row; gap: 8px; padding: 0 14px; font-size: 12px; }
+  .tabbar svg { width: 18px; height: 18px; }
+  .tabbar a:hover { opacity: 1; }
+  body:has(.tabbar) { padding-top: var(--top-h); }
+  body:has(.tabbar) .page { padding-bottom: 48px; }
+  body:has(.tabbar) .topline { top: var(--top-h); padding-top: 14px; }
+}
