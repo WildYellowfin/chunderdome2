@@ -114,7 +114,7 @@ export default function FirebaseSignIn({ config }: { config: FirebaseWebConfig }
     <>
       <div ref={captchaBox} />
       {step === "phone" ? (
-        <form onSubmit={sendCode}>
+        <form key="phone" onSubmit={sendCode}>
           {error && <div className="error">{error}</div>}
           <div className="field">
             <label htmlFor="phone">Your phone number</label>
@@ -123,7 +123,7 @@ export default function FirebaseSignIn({ config }: { config: FirebaseWebConfig }
           <button className="btn block-btn" disabled={pending}>{pending ? "One sec" : "Text me a code"}</button>
         </form>
       ) : (
-        <form onSubmit={checkCode}>
+        <form key="code" onSubmit={checkCode}>
           {error && <div className="error">{error}</div>}
           <div className="field">
             <label htmlFor="code">6-digit code</label>
