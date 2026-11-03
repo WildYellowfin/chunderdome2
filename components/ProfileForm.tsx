@@ -48,10 +48,10 @@ function Counter({ label, hint, value, onChange, min = 0, max = 20 }: { label: s
   );
 }
 
-function YesNo({ value, onChange, yes, no }: { value: boolean; onChange: (v: boolean) => void; yes: string; no: string }) {
+function YesNo({ value, onChange, yes, no, yesHint }: { value: boolean; onChange: (v: boolean) => void; yes: string; no: string; yesHint?: string }) {
   return (
     <div className="seg two" role="radiogroup">
-      <button type="button" role="radio" aria-checked={value} onClick={() => onChange(true)}>{yes}</button>
+      <button type="button" role="radio" aria-checked={value} onClick={() => onChange(true)}>{yes}{yesHint && <span>{yesHint}</span>}</button>
       <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(false)}>{no}</button>
     </div>
   );
@@ -197,14 +197,11 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             <p className="muted">Cars leave at 6 PM Friday. Back by 1 PM Sunday.</p>
             <div className="field">
               <span className="label">Do you have a car you&apos;re willing to drive?</span>
-              <YesNo value={p.hasCar} onChange={(v) => setP((x) => ({ ...x, hasCar: v, carSeats: v && x.carSeats < 2 ? 5 : x.carSeats }))} yes="Yes, I'll drive" no="No car" />
+              <YesNo value={p.hasCar} onChange={(v) => setP((x) => ({ ...x, hasCar: v, carSeats: v && x.carSeats < 2 ? 5 : x.carSeats }))} yes="Yes, I'll drive" yesHint="Drivers eat for free" no="No car" />
             </div>
             {p.hasCar && (
               <>
-                <div className="note ink perk">
-                  <div className="d d-m">Drivers eat free.</div>
-                  <p style={{ margin: "6px 0 0" }}>Your meals are on the group. Fuel and tolls get split evenly across everyone, you included, and you log them after the trip.</p>
-                </div>
+                <p className="hint" style={{ margin: "-10px 0 18px" }}>Fuel and tolls get split evenly across everyone, you included. You log them after the trip.</p>
                 <div className="field">
                   <span className="label">How big is it?</span>
                   <CarSize seats={p.carSeats} onChange={(n) => set("carSeats", n)} />
