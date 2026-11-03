@@ -6,7 +6,6 @@ import { packingList } from "@/lib/packing";
 import { bill, transportTotals, usd } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
 import TabBar from "@/components/TabBar";
-import Weather from "@/components/Weather";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +62,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
             </div>
           )}
         </section>
-
-        <Weather />
 
         <section className="block">
           <div className="block-head"><h2 className="d d-m">Packing</h2><span className="mono">{packed}/{items.length}</span></div>
