@@ -20,35 +20,6 @@ export const TRIP = {
   boozeBudget: 20,
 };
 
-export const ITINERARY: { day: string; items: { time: string; what: string; note?: string }[] }[] = [
-  {
-    day: "Friday, Nov 13",
-    items: [
-      { time: "Before 6 pm", what: "Eat dinner, or grab food for the car", note: "No group dinner Friday. Eat before, or pick something up with your car crew." },
-      { time: "6:00 pm", what: "Cars roll out of SF", note: "Sun sets at 4:58, so we drive in the dark. Headlamps within reach." },
-      { time: "~7:30 pm", what: "Arrive at Dillon Beach", note: "Raise the Chunderdome. Many hands, fast tent." },
-      { time: "Late", what: "Fire, stars, and the first chunder of the weekend" },
-    ],
-  },
-  {
-    day: "Saturday, Nov 14",
-    items: [
-      { time: "Morning", what: "Group breakfast", note: "Provided." },
-      { time: "Midday", what: "Group lunch", note: "Provided." },
-      { time: "Afternoon", what: "Model rocket launch", note: "Bring a rocket if you have one. Beach, tide pools and naps for the rest." },
-      { time: "Evening", what: "Group dinner", note: "Provided. The big one." },
-    ],
-  },
-  {
-    day: "Sunday, Nov 15",
-    items: [
-      { time: "Morning", what: "Group breakfast", note: "Provided." },
-      { time: "Late morning", what: "Strike camp, leave no trace" },
-      { time: "By 1:00 pm", what: "Everyone home", note: "Some cars may stay later. That's fine, just say so." },
-    ],
-  },
-];
-
 export const MEALS = [
   { meal: "Friday dinner", provided: false, note: "On your own: eat before or on the way" },
   { meal: "Saturday breakfast", provided: true },

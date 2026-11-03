@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { GROUP_GEAR, ITINERARY, MEALS, TRIP } from "@/lib/trip";
+import { GROUP_GEAR, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
 import { bill, transportTotals, usd } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
@@ -67,24 +67,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           <div className="block-head"><h2 className="d d-m">Packing</h2><span className="mono">{packed}/{items.length}</span></div>
           <div className="meter"><div style={{ width: `${(packed / items.length) * 100}%` }} /></div>
           <Link className="btn block-btn" href="/packing" style={{ marginTop: 16 }}>Open my list</Link>
-        </section>
-
-        <section className="block">
-          <h2 className="d d-m" style={{ marginBottom: 16 }}>The plan</h2>
-          {ITINERARY.map((d) => (
-            <div className="day" key={d.day}>
-              <h3 className="d d-s">{d.day}</h3>
-              <ul className="tl">
-                {d.items.map((i) => (
-                  <li key={i.time + i.what} className={/6:00 pm|7:30|By 1/.test(i.time) ? "hot" : ""}>
-                    <span className="when mono faint">{i.time}</span>
-                    <span className="what">{i.what}</span>
-                    {i.note && <div className="muted" style={{ fontSize: 15 }}>{i.note}</div>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
         </section>
 
         <section className="block">
