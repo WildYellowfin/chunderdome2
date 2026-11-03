@@ -305,6 +305,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .mk-pop .maplibregl-popup-content span { font-size: 13px; color: var(--ink-2); }
 .mk-pop .maplibregl-popup-tip { display: none; }
 
+/* ---------- Weather ---------- */
+.wx { display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--rule); background: var(--paper-hi); }
+.wx > div { padding: 12px 12px 10px; }
+.wx > div + div { border-left: 2px solid var(--rule); }
+.wx-t { display: flex; align-items: baseline; gap: 6px; margin: 4px 0 8px; }
+.wx-t b { font-family: var(--font-display), sans-serif; font-weight: 900; font-size: 40px; line-height: 0.95; font-variant-numeric: tabular-nums; }
+.wx-t span { font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 22px; color: var(--ink-3); }
+.wx-k { display: flex; justify-content: space-between; gap: 6px; font-size: 14px; padding-top: 4px; border-top: 1px solid var(--hair); }
+.wx-k span:first-child { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); align-self: center; }
+.wx-k span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+
 /* ---------- Desktop ---------- */
 .side-poster { display: none; }
 @media (min-width: 900px) {
