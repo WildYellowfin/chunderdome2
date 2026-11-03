@@ -159,11 +159,22 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
     <div className="flow">
       <div className="flow-head">
         <div className="row spread">
-          <span className="mono">{String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")} · {STEPS[step]}</span>
+          {firstTime ? (
+            <span className="mono">{String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")} · {STEPS[step]}</span>
+          ) : (
+            <label className="step-pick mono">
+              <span className="sr-only">Jump to step</span>
+              <select value={step} onChange={(e) => go(Number(e.target.value))}>
+                {STEPS.map((s, i) => <option key={s} value={i}>{String(i + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")} · {s}</option>)}
+              </select>
+            </label>
+          )}
           {!firstTime && <a className="mono" href="/me">Cancel</a>}
         </div>
-        <div className="flow-bar" aria-hidden>
-          {STEPS.map((s, i) => <span key={s} className={i <= step ? "on" : ""} />)}
+        <div className="flow-bar" aria-hidden={firstTime || undefined}>
+          {STEPS.map((s, i) => firstTime
+            ? <span key={s} className={i <= step ? "on" : ""} />
+            : <button key={s} type="button" className={i <= step ? "on" : ""} aria-label={s} aria-current={i === step ? "step" : undefined} onClick={() => go(i)} />)}
         </div>
       </div>
 
@@ -342,7 +353,8 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
 
       <div className="flow-foot">
         {step > 0 && <button type="button" className="btn ghost" onClick={() => go(step - 1)}>Back</button>}
-        {step < STEPS.length - 1
+        {!firstTime && step < STEPS.length - 1 && <button type="button" className="btn ghost" onClick={next}>Next</button>}
+        {step < STEPS.length - 1 && firstTime
           ? <button type="button" className="btn" onClick={next}>Next</button>
           : <button type="button" className="btn" onClick={submit} disabled={pending}>{pending ? "Saving" : firstTime ? "I'm in" : "Save"}</button>}
       </div>
