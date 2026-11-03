@@ -213,6 +213,7 @@ th { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 
   .stats > div { border-right: 2px solid var(--rule); }
 }
 
+.linkish { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .poster-frame { margin: 0; background: var(--teal); padding-top: env(safe-area-inset-top, 0px); }
 

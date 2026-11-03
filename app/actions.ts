@@ -6,6 +6,7 @@ import {
   checkSmsCode,
   checkTripCode,
   clearSession,
+  firebaseTokenPhone,
   requireAdmin,
   requireUser,
   sendSmsCode,
@@ -27,6 +28,7 @@ export async function startSignIn(_: FormState, form: FormData): Promise<FormSta
   const mode = verifyMode();
 
   if (mode === "closed") return { error: "Sign-in isn't set up yet. Tell the organiser.", phone: typed };
+  if (mode === "firebase") return { error: "Something went wrong. Reload the page and try again.", phone: typed };
   if (mode === "trip-code") {
     if (!checkTripCode(String(form.get("tripCode") || ""))) {
       return { error: "Wrong trip code. It's in the group chat.", phone: typed };
@@ -47,6 +49,18 @@ export async function verifySignIn(_: FormState, form: FormData): Promise<FormSt
   const code = String(form.get("code") || "").trim();
   if (!phone || !code) return { error: "Enter the code we texted you." };
   if (!(await checkSmsCode(phone, code).catch(() => false))) return { error: "That code didn't work. Try again, or resend." };
+  await setSession(phone);
+  await getOrCreateProfile(phone);
+  redirect("/");
+}
+
+// Firebase texted the code and confirmed it in the browser; trust only the
+// phone number inside the ID token Google signed.
+export async function firebaseSignIn(idToken: string): Promise<FormState> {
+  if (verifyMode() !== "firebase") return { error: "Sign-in isn't set up yet. Tell the organiser." };
+  const verified = await firebaseTokenPhone(String(idToken || ""));
+  const phone = verified && normalizePhone(verified);
+  if (!phone) return { error: "That code didn't work. Try again, or resend." };
   await setSession(phone);
   await getOrCreateProfile(phone);
   redirect("/");
