@@ -314,23 +314,9 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 5 && (
           <>
             <h2 className="d d-l">Money</h2>
-            <div className="bill field">
-              <div className="bill-row">
-                <span>Food<span className="s">{p.hasCar ? "Free for drivers" : "Two breakfasts, Saturday lunch and dinner"}</span></span>
-                {!p.agreeFood ? <b className="bill-v">—</b> : p.hasCar ? <span className="bill-v"><s>${TRIP.foodBudget}</s> <b>Free</b></span> : <b className="bill-v">${TRIP.foodBudget}</b>}
-              </div>
-              <div className="bill-row">
-                <span>Fuel and tolls<span className="s">Split evenly across everyone, drivers included</span></span>
-                <b className="bill-v">Your share</b>
-              </div>
-              <div className="bill-row">
-                <span>Drinks<span className="s">Optional</span></span>
-                <b className="bill-v">{p.optInBooze ? `$${TRIP.boozeBudget}` : "—"}</b>
-              </div>
-            </div>
-            <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>You can add any group expenses you make on this website, and you&apos;ll be reimbursed.</p>
             <div className="field">
               <span className="label">Eating with us?</span>
+              <div className="hint" style={{ marginTop: -4, marginBottom: 10 }}>Two breakfasts, Saturday lunch and dinner</div>
               <YesNo value={eatPicked ? p.agreeFood : null} onChange={(v) => { setEatPicked(true); set("agreeFood", v); }}
                 yes="I'm in" yesSub={p.hasCar ? "Free for drivers" : `$${TRIP.foodBudget}`} no="I'm out" noSub="$0" />
             </div>
@@ -339,6 +325,8 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
               <YesNo value={drinkPicked ? p.optInBooze : null} onChange={(v) => { setDrinkPicked(true); set("optInBooze", v); }}
                 yes="I'm in" yesSub={`$${TRIP.boozeBudget}`} no="I'm out" noSub="$0" />
             </div>
+            <p className="hint" style={{ marginTop: -6 }}>Fuel and tolls are split evenly across everyone, drivers included.</p>
+            <p className="hint" style={{ marginBottom: 18 }}>You can add any group expenses you make on this website, and you&apos;ll be reimbursed.</p>
             <div className="field">
               <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>
               <input id="venmo" type="text" value={p.venmo} onChange={(e) => set("venmo", e.target.value)} placeholder="@your-name" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
