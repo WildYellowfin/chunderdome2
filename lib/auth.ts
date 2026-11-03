@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "crypto";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getOrCreateProfile, isAdmin } from "./db";
@@ -71,14 +72,50 @@ export async function requireAdmin() {
 }
 
 // ---- Phone verification -------------------------------------------------
-// Preferred: Twilio Verify (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+// Preferred: Firebase phone auth (set FIREBASE_API_KEY and FIREBASE_PROJECT_ID): Firebase texts the code and checks it in the
+// browser, and the server verifies the signed ID token it hands back. Then
+// Twilio Verify (set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
 // TWILIO_VERIFY_SERVICE_SID). Fallback: a shared TRIP_CODE you text to the
-// group chat. With neither set, sign-in only needs a phone number, which is
+// group chat. With none set, sign-in only needs a phone number, which is
 // fine locally but means anyone could claim any number.
 
-export type VerifyMode = "sms" | "trip-code" | "open" | "closed";
+export type VerifyMode = "firebase" | "sms" | "trip-code" | "open" | "closed";
+
+export interface FirebaseWebConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+}
+
+// These are the public web-app config values Firebase gives you, not secrets.
+// Read on the server at request time and handed to the login form as props.
+export function firebaseConfig(): FirebaseWebConfig | null {
+  const apiKey = process.env.FIREBASE_API_KEY;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  if (!apiKey || !projectId) return null;
+  return { apiKey, projectId, authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com` };
+}
+
+const googleKeys = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
+
+/** The phone number a Firebase ID token was issued for, or null if the token doesn't check out. */
+export async function firebaseTokenPhone(idToken: string): Promise<string | null> {
+  const config = firebaseConfig();
+  if (!config) return null;
+  try {
+    const { payload } = await jwtVerify(idToken, googleKeys, {
+      issuer: `https://securetoken.google.com/${config.projectId}`,
+      audience: config.projectId,
+    });
+    return typeof payload.phone_number === "string" && payload.sub ? payload.phone_number : null;
+  } catch (e) {
+    console.error("Firebase token rejected", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
 
 export function verifyMode(): VerifyMode {
+  if (firebaseConfig()) return "firebase";
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID) {
     return "sms";
   }

@@ -1,8 +1,15 @@
 "use client";
 import { useActionState } from "react";
 import { startSignIn, verifySignIn, type FormState } from "@/app/actions";
+import type { FirebaseWebConfig, VerifyMode } from "@/lib/auth";
+import FirebaseSignIn from "./FirebaseSignIn";
 
-export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" | "closed" }) {
+export function PhoneForm({ mode, firebase }: { mode: VerifyMode; firebase?: FirebaseWebConfig | null }) {
+  if (mode === "firebase" && firebase) return <FirebaseSignIn config={firebase} />;
+  return <ServerPhoneForm mode={mode} />;
+}
+
+function ServerPhoneForm({ mode }: { mode: VerifyMode }) {
   const [state, action, pending] = useActionState<FormState, FormData>(startSignIn, undefined);
   return (
     <form action={action}>

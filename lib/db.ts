@@ -2,6 +2,7 @@ import "server-only";
 import { Redis } from "@upstash/redis";
 import { promises as fs } from "fs";
 import path from "path";
+import { normalizePhone } from "./phone";
 import { emptyProfile, type Profile } from "./types";
 
 // Storage: Upstash Redis on Vercel (add the "Upstash for Redis" integration,
@@ -146,15 +147,4 @@ export async function isAdmin(phone: string): Promise<boolean> {
   return (await db.listAdmins()).includes(phone);
 }
 
-export function normalizePhone(input: string): string | null {
-  const digits = input.replace(/[^\d+]/g, "");
-  if (!digits) return null;
-  if (digits.startsWith("+")) {
-    const d = digits.slice(1).replace(/\D/g, "");
-    return d.length >= 8 && d.length <= 15 ? `+${d}` : null;
-  }
-  const d = digits.replace(/\D/g, "");
-  if (d.length === 10) return `+1${d}`;
-  if (d.length === 11 && d.startsWith("1")) return `+${d}`;
-  return null;
-}
+export { normalizePhone };
