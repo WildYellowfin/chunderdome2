@@ -17,7 +17,7 @@ export default async function Weather() {
             <div className="wx-d">{day(d.date)} {Number(d.date.slice(8))}</div>
             <div className="wx-t"><b>{d.hi}°</b><span>{d.lo}°</span></div>
             <div className="wx-m"><span>Rain</span>{d.rain}%</div>
-            <div className="wx-m"><span>Wind</span>{d.wind}</div>
+            <div className="wx-m"><span>Wind</span>{d.wind}<small> mph</small></div>
           </div>
         ))}
       </div>

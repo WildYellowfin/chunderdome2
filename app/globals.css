@@ -342,7 +342,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 
 /* Weather card printed on the poster, top right beside the dome and rocket. Sized in poster widths (cqw). */
 .poster-box { position: relative; container-type: inline-size; }
-.wx-card { position: absolute; left: 53.5%; top: 15.5%; width: 43%; background: rgba(247, 240, 226, 0.94); color: var(--ink); border: 0.45cqw solid var(--ink); border-radius: 2.6cqw; box-shadow: 0.9cqw 0.9cqw 0 rgba(20, 22, 27, 0.85); padding: 1.6cqw 1.8cqw 1.8cqw; }
+.wx-card { position: absolute; left: 53.5%; top: 14.8%; width: 43%; background: rgba(247, 240, 226, 0.94); color: var(--ink); border: 0.45cqw solid var(--ink); border-radius: 2.6cqw; box-shadow: 0.9cqw 0.9cqw 0 rgba(20, 22, 27, 0.85); padding: 1.4cqw 1.8cqw 1.3cqw; }
 .wx-head { font-family: var(--font-mono), monospace; font-size: 1.9cqw; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); font-weight: 600; margin-bottom: 1cqw; }
 .wx-days { display: grid; grid-template-columns: repeat(3, 1fr); }
 .wx-day + .wx-day { border-left: 0.25cqw solid rgba(20, 22, 27, 0.25); padding-left: 1.6cqw; }
@@ -351,4 +351,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .wx-t b { font-family: var(--font-display), sans-serif; font-weight: 900; font-size: 5.4cqw; line-height: 0.95; font-variant-numeric: tabular-nums; }
 .wx-t span { font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 3cqw; color: var(--ink-3); }
 .wx-m { font-size: 1.9cqw; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.35; }
+.wx-m small { font-size: 1.5cqw; font-weight: 400; color: var(--ink-2); }
 .wx-m span { font-family: var(--font-mono), monospace; font-weight: 400; font-size: 1.6cqw; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); margin-right: 0.8cqw; }
