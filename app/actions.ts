@@ -113,6 +113,7 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     optInBooze: !!input.optInBooze,
     fuelCost: hasCar ? profile.fuelCost : 0,
     tollCost: hasCar ? profile.tollCost : 0,
+    groupCost: profile.groupCost || 0,
     notes: str(input.notes, 500),
     // A driver always rides in their own car.
     rideWith: hasCar ? profile.phone : profile.rideWith === profile.phone ? null : profile.rideWith,
@@ -129,10 +130,12 @@ const dollars = (v: FormDataEntryValue | null) => {
   return Number.isFinite(n) ? Math.min(2000, Math.max(0, Math.round(n * 100) / 100)) : 0;
 };
 
-export async function saveDriverCosts(_: FormState, form: FormData): Promise<FormState> {
+export async function saveCosts(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireUser();
-  if (!profile.hasCar) return { error: "Only drivers log fuel and tolls." };
-  await db.saveProfile({ ...profile, fuelCost: dollars(form.get("fuel")), tollCost: dollars(form.get("tolls")), updatedAt: new Date().toISOString() });
+  const driving = profile.hasCar
+    ? { fuelCost: dollars(form.get("fuel")), tollCost: dollars(form.get("tolls")) }
+    : {};
+  await db.saveProfile({ ...profile, ...driving, groupCost: dollars(form.get("group")), updatedAt: new Date().toISOString() });
   revalidatePath("/", "layout");
   return {};
 }

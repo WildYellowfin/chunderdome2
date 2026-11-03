@@ -19,7 +19,7 @@ export async function GET() {
   const all = await db.listProfiles();
   const byPhone = new Map(all.map((p) => [p.phone, p]));
   const bills = new Map(computeLogistics(all).money.bills.map((b) => [b.p.phone, b]));
-  const header = ["name", "phone", "pickup_area", "pickup_lat", "pickup_lng", "driving", "car_seats", "trunk", "riding_with", "sunday", "back_by", "sleeping_bag", "pad", "lending", "tents_to_lend", "bringing", "dietary", "dietary_notes", "venmo", "food_usd", "booze_usd", "transport_usd", "fuel_spent_usd", "toll_spent_usd", "total_usd", "notes", "onboarded"];
+  const header = ["name", "phone", "pickup_area", "pickup_lat", "pickup_lng", "driving", "car_seats", "trunk", "riding_with", "sunday", "back_by", "sleeping_bag", "pad", "lending", "tents_to_lend", "bringing", "dietary", "dietary_notes", "venmo", "food_usd", "booze_usd", "transport_usd", "fuel_spent_usd", "toll_spent_usd", "group_spent_usd", "total_usd", "notes", "onboarded"];
   const rows = all.map((p) => {
     const b = bills.get(p.phone);
     const ex = Object.entries(p.extras || {}).filter(([, n]) => n > 0);
@@ -31,7 +31,7 @@ export async function GET() {
       (p.tents || []).join(" "),
       ex.filter(([k]) => k !== "sleepingBag" && k !== "sleepingPad").map(([k, n]) => `${k}:${n}`).join(" "),
       (p.dietary || []).join("; "), p.dietaryNotes, p.venmo,
-      b?.food ?? "", b?.booze ?? "", b ? b.transport.toFixed(2) : "", p.fuelCost || 0, p.tollCost || 0, b ? b.total.toFixed(2) : "",
+      b?.food ?? "", b?.booze ?? "", b ? b.transport.toFixed(2) : "", p.fuelCost || 0, p.tollCost || 0, p.groupCost || 0, b ? b.total.toFixed(2) : "",
       p.notes, p.onboardedAt ? "yes" : "no",
     ].map(esc).join(",");
   });

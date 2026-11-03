@@ -12,7 +12,7 @@ export const TRIP = {
   groupSmallTentBeds: 4,
   rsvps: 22,
   foodBudget: 35,
-  boozeBudget: 20,
+  boozeBudget: 15, // 6-8 drinks a head: store beer ~$1.25/can, tequila ~$1/pour plus ice, limes, mixers
 };
 
 export const MEALS = [

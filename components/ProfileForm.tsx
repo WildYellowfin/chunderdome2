@@ -320,7 +320,6 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 5 && (
           <>
             <h2 className="d d-l">Money</h2>
-            <p className="muted">We buy food together and send Venmo requests after the trip.</p>
             <div className="bill field">
               <div className="bill-row">
                 <span>Food<span className="s">{p.hasCar ? "Free for drivers" : "Two breakfasts, Saturday lunch and dinner"}</span></span>
@@ -331,14 +330,14 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
                 <b className="bill-v">Your share</b>
               </div>
               <div className="bill-row">
-                <span>Booze kitty<span className="s">Optional</span></span>
+                <span>Drinks<span className="s">Optional</span></span>
                 <b className="bill-v">{p.optInBooze ? `$${TRIP.boozeBudget}` : "—"}</b>
               </div>
             </div>
-            {p.hasCar && <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>After the trip, add what you spent on fuel and tolls under Me, and it comes off your share.</p>}
+            <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>You can add any group expenses you make on this website, and you&apos;ll be reimbursed.</p>
             <div className="opts field">
               {!p.hasCar && <Tick on={p.agreeFood} onChange={(v) => set("agreeFood", v)} title={`I'm in for $${TRIP.foodBudget} of food`} />}
-              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title={`Add $${TRIP.boozeBudget} for the booze kitty`} />
+              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title="Do you plan on drinking?" sub={`$${TRIP.boozeBudget} for drinks`} />
             </div>
             <div className="field">
               <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>

@@ -12,7 +12,7 @@ export interface CarSummary {
 export function bill(p: Profile, transportShare: number) {
   const food = p.hasCar ? 0 : p.agreeFood ? TRIP.foodBudget : 0;
   const booze = p.optInBooze ? TRIP.boozeBudget : 0;
-  const spent = p.hasCar ? (p.fuelCost || 0) + (p.tollCost || 0) : 0;
+  const spent = (p.hasCar ? (p.fuelCost || 0) + (p.tollCost || 0) : 0) + (p.groupCost || 0);
   const total = food + booze + transportShare - spent;
   return { food, booze, transport: transportShare, spent, total: Math.round(total * 100) / 100 };
 }
@@ -118,7 +118,7 @@ export function computeLogistics(all: Profile[]) {
 
 /** What a bill is for, as a Venmo note. */
 export function billNote(b: ReturnType<typeof bill>) {
-  const parts = [b.food ? `food ${usd(b.food)}` : "", b.booze ? `booze ${usd(b.booze)}` : "", b.transport ? `fuel+tolls ${usd(b.transport)}` : "", b.spent ? `minus ${usd(b.spent)} you spent` : ""].filter(Boolean);
+  const parts = [b.food ? `food ${usd(b.food)}` : "", b.booze ? `drinks ${usd(b.booze)}` : "", b.transport ? `fuel+tolls ${usd(b.transport)}` : "", b.spent ? `minus ${usd(b.spent)} you spent` : ""].filter(Boolean);
   return `Chunderdome II: ${parts.join(", ")}`;
 }
 

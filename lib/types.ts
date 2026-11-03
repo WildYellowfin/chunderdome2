@@ -38,6 +38,8 @@ export interface Profile {
   // Drivers fill these in after the trip.
   fuelCost: number;
   tollCost: number;
+  // Anything anyone bought for the group (groceries, ice, drinks); reimbursed.
+  groupCost: number;
 
   notes: string;
 
@@ -72,6 +74,7 @@ export function emptyProfile(phone: string): Profile {
     optInBooze: false,
     fuelCost: 0,
     tollCost: 0,
+    groupCost: 0,
     notes: "",
     packed: [],
     rideWith: null,

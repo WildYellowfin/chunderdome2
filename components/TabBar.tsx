@@ -14,7 +14,7 @@ export default function TabBar({ admin }: { admin?: boolean }) {
   const tabs = [
     { href: "/", label: "Trip", icon: I.trip },
     { href: "/packing", label: "Pack", icon: I.pack },
-    { href: "/me", label: "Me", icon: I.me },
+    { href: "/me", label: "Profile", icon: I.me },
     ...(admin ? [{ href: "/admin", label: "Admin", icon: I.admin }] : []),
   ];
   return (

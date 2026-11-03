@@ -60,7 +60,7 @@ export default async function AdminPage() {
     { v: signed(bedGap), l: `tent beds (${L.sleep.beds}) vs people`, t: tone(bedGap) },
     { v: signed(bagGap), l: `bags: ${L.gear.bags.need} needed, ${L.gear.bags.spare} to lend`, t: tone(bagGap) },
     { v: signed(padGap), l: `pads: ${L.gear.pads.need} needed, ${L.gear.pads.spare} to lend`, t: tone(padGap) },
-    { v: usd(L.money.foodTotal + L.money.boozeTotal), l: `${usd(L.money.foodTotal)} food, ${usd(L.money.boozeTotal)} booze` },
+    { v: usd(L.money.foodTotal + L.money.boozeTotal), l: `${usd(L.money.foodTotal)} food, ${usd(L.money.boozeTotal)} drinks` },
   ];
 
   return (
@@ -185,7 +185,7 @@ export default async function AdminPage() {
         </div>
 
         <section className="block">
-          <div className="block-head"><h2 className="d d-m">Money</h2><span className="mono faint">{L.money.eaters} eating · {L.money.boozeIn} booze</span></div>
+          <div className="block-head"><h2 className="d d-m">Money</h2><span className="mono faint">{L.money.eaters} eating · {L.money.boozeIn} drinking</span></div>
           <p className="muted" style={{ fontSize: 15 }}>
             Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across {L.people.length}. Drivers eat free, and what they spent comes off their total.
           </p>
@@ -208,7 +208,7 @@ export default async function AdminPage() {
                 </div>
                 <div className="hint" style={{ marginTop: 2 }}>
                   {b.p.hasCar ? "Food free" : `Food ${usd(b.food)}`}
-                  {b.booze > 0 && ` · booze ${usd(b.booze)}`}
+                  {b.booze > 0 && ` · drinks ${usd(b.booze)}`}
                   {` · transport ${usd(b.transport)}`}
                   {b.spent > 0 && ` · spent\u00a0−${usd(b.spent)}`}
                 </div>
