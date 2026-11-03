@@ -10,7 +10,6 @@ export function PhoneForm({ mode }: { mode: "sms" | "trip-code" | "open" | "clos
       <div className="field">
         <label htmlFor="phone">Your phone number</label>
         <input key={state?.phone} id="phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="(415) 555-0123" defaultValue={state?.phone} required />
-        <div className="hint">So we can text the crew about rides and timing.</div>
       </div>
       {mode === "trip-code" && (
         <div className="field">

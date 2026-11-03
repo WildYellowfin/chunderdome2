@@ -136,13 +136,13 @@ export const LEND_GEAR: { key: string; label: string; hint?: string }[] = [
 
 // Gear the hosts want a head count of. Counts include your own.
 export const BRING_GEAR: { key: string; label: string; hint?: string }[] = [
-  { key: "headlamp", label: "Headlamps", hint: "We arrive after dark" },
-  { key: "campChair", label: "Camp chairs", hint: "Fireside seating" },
+  { key: "headlamp", label: "Headlamps" },
+  { key: "campChair", label: "Camp chairs" },
   { key: "hammock", label: "Hammocks" },
-  { key: "lantern", label: "Lanterns", hint: "For the camp table and the dome" },
+  { key: "lantern", label: "Lanterns" },
   { key: "table", label: "Folding tables" },
   { key: "cooler", label: "Medium size coolers", hint: "Enough for 30 beers" },
-  { key: "rocket", label: "Model rockets", hint: "Plus spare engines and igniters" },
+  { key: "rocket", label: "Model rockets" },
 ];
 
 export const EXTRA_GEAR = [...LEND_GEAR, ...BRING_GEAR];

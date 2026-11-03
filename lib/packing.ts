@@ -19,9 +19,9 @@ export function packingList(p: Profile): PackItem[] {
   const S = "Sleep";
   if (p.sleepSetup === "bag") add(S, "sleeping-bag", "Sleeping bag");
   if (p.sleepSetup === "blanket") add(S, "blanket", "Warm blankets");
-  if (p.sleepSetup === "need") add(S, "borrow-bag", "Sleeping bag: borrowing one", "We'll match you with a spare and tell you who.");
+  if (p.sleepSetup === "need") add(S, "borrow-bag", "Sleeping bag: borrowing one");
   if (p.padSetup === "own") add(S, "pad", "Sleeping pad");
-  else add(S, "borrow-pad", "Sleeping pad: borrowing one", "We'll match you with a spare and tell you who.");
+  else add(S, "borrow-pad", "Sleeping pad: borrowing one");
   add(S, "pillow", "Pillow");
 
   const E = "Easy to forget";
@@ -46,11 +46,10 @@ export function packingList(p: Profile): PackItem[] {
     const n = p.extras[g.key] || 0;
     if (n > 0) add(L, `lend-${g.key}`, n === 1 ? `Spare ${g.label.toLowerCase().replace(/s$/, "")}` : `Spare ${g.label.toLowerCase()} (${n})`);
   }
-  p.tents.forEach((sleeps, i) => add(L, `lend-tent-${i}`, `Tent for ${sleeps}`, "Poles, stakes, and fly."));
+  p.tents.forEach((sleeps, i) => add(L, `lend-tent-${i}`, `Tent for ${sleeps}`));
 
   const D = "Friday";
-  add(D, "friday-dinner", "Eat before 6 PM", "No group dinner Friday.");
-  if (p.hasCar) add(D, "car-ready", "Tank filled, trunk cleared");
+  add(D, "friday-dinner", "Eat before 6 PM");
 
   return items;
 }

@@ -185,7 +185,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             </div>
             <div className="field">
               <span className="label">Where should we pick you up?</span>
-              <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>Cars gather at {CLAY_HOUSE.name} ({CLAY_HOUSE.address}). A nearby corner is plenty.</div>
+              <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>Cars gather at {CLAY_HOUSE.name} ({CLAY_HOUSE.address}).</div>
               <PickupMap value={p.pickup} onChange={(v, area) => setP((x) => ({ ...x, pickup: v, area }))} />
             </div>
           </>
@@ -198,13 +198,10 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             <div className="field">
               <span className="label">Do you have a car you&apos;re willing to drive?</span>
               <YesNo value={p.hasCar} onChange={(v) => setP((x) => ({ ...x, hasCar: v, carSeats: v && x.carSeats < 2 ? 5 : x.carSeats }))} yes="Yes, I'll drive" no="No car" />
+              <div className="hint">Drivers eat for free.</div>
             </div>
             {p.hasCar && (
               <>
-                <div className="note ink perk">
-                  <div className="d d-m">Drivers eat free.</div>
-                  <p style={{ margin: "6px 0 0" }}>Your meals are on the group. Fuel and tolls get split evenly across everyone, you included, and you log them after the trip.</p>
-                </div>
                 <div className="field">
                   <span className="label">How big is it?</span>
                   <CarSize seats={p.carSeats} onChange={(n) => set("carSeats", n)} />
@@ -235,7 +232,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 2 && (
           <>
             <h2 className="d d-l">Sleeping</h2>
-            <p className="muted">We&apos;ll work out who sleeps where. November nights here drop to the mid-40s.</p>
+            <p className="muted">It could be as cold as the mid-40s.</p>
             <div className="field">
               <span className="label">Sleeping bag</span>
               <div className="opts">
@@ -296,7 +293,6 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 4 && (
           <>
             <h2 className="d d-l">Food</h2>
-            <p className="muted">Eat before we leave Friday. After that, we cook.</p>
             <ul className="list field">
               {MEALS.map((m) => (
                 <li key={m.meal} className="row spread"><span>{m.meal}</span><span className={`tag ${m.provided ? "solid" : ""}`}>{m.provided ? "Provided" : "On you"}</span></li>
@@ -316,7 +312,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             </div>
             <div className="field">
               <label htmlFor="dn">Anything else the cooks should know? <span className="faint">(optional)</span></label>
-              <textarea id="dn" value={p.dietaryNotes} onChange={(e) => set("dietaryNotes", e.target.value)} placeholder="Severe allergies, where your EpiPen lives" />
+              <textarea id="dn" value={p.dietaryNotes} onChange={(e) => set("dietaryNotes", e.target.value)} />
             </div>
           </>
         )}
@@ -327,7 +323,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             <p className="muted">We buy food together and send Venmo requests after the trip.</p>
             <div className="bill field">
               <div className="bill-row">
-                <span>Food<span className="s">{p.hasCar ? "Free for drivers. Thanks for driving." : "Two breakfasts, Saturday lunch and dinner"}</span></span>
+                <span>Food<span className="s">{p.hasCar ? "Free for drivers" : "Two breakfasts, Saturday lunch and dinner"}</span></span>
                 {p.hasCar ? <span className="bill-v"><s>${TRIP.foodBudget}</s> <b>Free</b></span> : <b className="bill-v">${TRIP.foodBudget}</b>}
               </div>
               <div className="bill-row">
@@ -342,12 +338,11 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             {p.hasCar && <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>After the trip, add what you spent on fuel and tolls under Me, and it comes off your share.</p>}
             <div className="opts field">
               {!p.hasCar && <Tick on={p.agreeFood} onChange={(v) => set("agreeFood", v)} title={`I'm in for $${TRIP.foodBudget} of food`} />}
-              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title={`Add $${TRIP.boozeBudget} for the booze kitty`} sub="Skip it if you're bringing your own or not drinking." />
+              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title={`Add $${TRIP.boozeBudget} for the booze kitty`} />
             </div>
             <div className="field">
               <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>
               <input id="venmo" type="text" value={p.venmo} onChange={(e) => set("venmo", e.target.value)} placeholder="@your-name" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
-              <div className="hint">No Venmo? Leave it blank and we&apos;ll sort it out another way.</div>
             </div>
             <div className="field">
               <label htmlFor="notes">Anything else? <span className="faint">(optional)</span></label>
