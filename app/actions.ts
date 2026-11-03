@@ -80,7 +80,6 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
   const pickup = { lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000 };
 
   const hasCar = !!input.hasCar;
-  if (!hasCar && !input.agreeFood) return { error: `Please agree to the food budget so we can feed you.` };
   const returnPref = oneOf(input.returnPref, ["1pm", "later", "earlier"] as const, "1pm");
   const returnBy = returnPref === "earlier" && /^\d{2}:\d{2}$/.test(str(input.returnBy)) ? str(input.returnBy) : "";
   if (returnPref === "earlier" && !returnBy) return { error: "Tell us when you need to be back on Sunday." };
@@ -109,7 +108,7 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     dietary: (Array.isArray(input.dietary) ? input.dietary : []).filter((d) => DIETARY_OPTIONS.includes(d)),
     dietaryNotes: str(input.dietaryNotes, 300),
     venmo: str(input.venmo, 40).replace(/^@/, ""),
-    agreeFood: !hasCar,
+    agreeFood: !!input.agreeFood,
     optInBooze: !!input.optInBooze,
     fuelCost: hasCar ? profile.fuelCost : 0,
     tollCost: hasCar ? profile.tollCost : 0,

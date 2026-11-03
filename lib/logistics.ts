@@ -10,7 +10,7 @@ export interface CarSummary {
 
 /** What one person owes (positive) or is owed (negative). */
 export function bill(p: Profile, transportShare: number) {
-  const food = p.hasCar ? 0 : p.agreeFood ? TRIP.foodBudget : 0;
+  const food = p.agreeFood && !p.hasCar ? TRIP.foodBudget : 0;
   const booze = p.optInBooze ? TRIP.boozeBudget : 0;
   const spent = (p.hasCar ? (p.fuelCost || 0) + (p.tollCost || 0) : 0) + (p.groupCost || 0);
   const total = food + booze + transportShare - spent;
@@ -77,7 +77,7 @@ export function computeLogistics(all: Profile[]) {
   const transport = transportTotals(people);
   const bills = people.map((p) => ({ p, ...bill(p, transport.share) }));
   const money = {
-    eaters: people.filter((p) => !p.hasCar && p.agreeFood).length,
+    eaters: people.filter((p) => p.agreeFood).length,
     boozeIn: people.filter((p) => p.optInBooze).length,
     foodTotal: bills.reduce((s, b) => s + b.food, 0),
     boozeTotal: bills.reduce((s, b) => s + b.booze, 0),

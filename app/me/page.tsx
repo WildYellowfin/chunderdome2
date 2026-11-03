@@ -51,7 +51,7 @@ export default async function MePage() {
         <section className="block">
           <h2 className="d d-m" style={{ marginBottom: 12 }}>Your tab</h2>
           <ul className="list">
-            <li className="row spread"><span>Food</span><span>{p.hasCar ? "Free, you're driving" : usd(b.food)}</span></li>
+            <li className="row spread"><span>Food</span><span>{!p.agreeFood ? "Not eating with us" : p.hasCar ? "Free, you're driving" : usd(b.food)}</span></li>
             {b.booze > 0 && <li className="row spread"><span>Drinks</span><span>{usd(b.booze)}</span></li>}
             <li className="row spread"><span>Fuel and tolls share</span><span>{T.total ? usd(b.transport) : "After the trip"}</span></li>
             {b.spent > 0 && <li className="row spread"><span>Group expenses</span><span>−{usd(b.spent)}</span></li>}

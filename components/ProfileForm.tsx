@@ -22,16 +22,6 @@ function Opt<T extends string>({
   );
 }
 
-function Tick({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: React.ReactNode; sub?: string }) {
-  return (
-    <label className={`opt tick ${on ? "on" : ""}`}>
-      <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} />
-      <span className="box" aria-hidden />
-      <span><span className="t">{title}</span>{sub && <span className="s">{sub}</span>}</span>
-    </label>
-  );
-}
-
 function Counter({ label, hint, value, onChange, min = 0, max = 20 }: { label: string; hint?: string; value: number; onChange: (n: number) => void; min?: number; max?: number }) {
   return (
     <div className="stepper">
@@ -48,11 +38,11 @@ function Counter({ label, hint, value, onChange, min = 0, max = 20 }: { label: s
   );
 }
 
-function YesNo({ value, onChange, yes, no }: { value: boolean; onChange: (v: boolean) => void; yes: string; no: string }) {
+function YesNo({ value, onChange, yes, no, yesSub, noSub }: { value: boolean | null; onChange: (v: boolean) => void; yes: string; no: string; yesSub?: string; noSub?: string }) {
   return (
     <div className="seg two" role="radiogroup">
-      <button type="button" role="radio" aria-checked={value} onClick={() => onChange(true)}>{yes}</button>
-      <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(false)}>{no}</button>
+      <button type="button" role="radio" aria-checked={value === true} onClick={() => onChange(true)}>{yes}{yesSub && <span>{yesSub}</span>}</button>
+      <button type="button" role="radio" aria-checked={value === false} onClick={() => onChange(false)}>{no}{noSub && <span>{noSub}</span>}</button>
     </div>
   );
 }
@@ -125,12 +115,16 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setP((x) => ({ ...x, [k]: v }));
   const setExtra = (k: string, n: number) => setP((x) => ({ ...x, extras: { ...x.extras, [k]: n } }));
   const setTents = (t: number[]) => set("tents", t);
+  // First time through, eating and drinking start unanswered so everyone picks one on purpose.
+  const [eatPicked, setEatPicked] = useState(!firstTime);
+  const [drinkPicked, setDrinkPicked] = useState(!firstTime);
 
   function validate(s: number): string | null {
     if (s === 0 && !p.name.trim()) return "What should we call you?";
     if (s === 0 && !p.pickup) return "Drag the map to drop your pin.";
     if (s === 1 && p.returnPref === "earlier" && !p.returnBy) return "What time do you need to be back on Sunday?";
-    if (s === 5 && !p.hasCar && !p.agreeFood) return `Tick the $${TRIP.foodBudget} food box so we can feed you.`;
+    if (s === 5 && !eatPicked) return "Are you eating with us?";
+    if (s === 5 && !drinkPicked) return "Are you drinking with us?";
     return null;
   }
 
@@ -159,7 +153,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
     });
   }
 
-  const owesFood = p.hasCar ? 0 : TRIP.foodBudget;
+  const owesFood = p.hasCar || !p.agreeFood ? 0 : TRIP.foodBudget;
 
   return (
     <div className="flow">
@@ -323,7 +317,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
             <div className="bill field">
               <div className="bill-row">
                 <span>Food<span className="s">{p.hasCar ? "Free for drivers" : "Two breakfasts, Saturday lunch and dinner"}</span></span>
-                {p.hasCar ? <span className="bill-v"><s>${TRIP.foodBudget}</s> <b>Free</b></span> : <b className="bill-v">${TRIP.foodBudget}</b>}
+                {!p.agreeFood ? <b className="bill-v">—</b> : p.hasCar ? <span className="bill-v"><s>${TRIP.foodBudget}</s> <b>Free</b></span> : <b className="bill-v">${TRIP.foodBudget}</b>}
               </div>
               <div className="bill-row">
                 <span>Fuel and tolls<span className="s">Split evenly across everyone, drivers included</span></span>
@@ -335,9 +329,15 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
               </div>
             </div>
             <p className="hint" style={{ marginTop: -10, marginBottom: 18 }}>You can add any group expenses you make on this website, and you&apos;ll be reimbursed.</p>
-            <div className="opts field">
-              {!p.hasCar && <Tick on={p.agreeFood} onChange={(v) => set("agreeFood", v)} title={`I'm in for $${TRIP.foodBudget} of food`} />}
-              <Tick on={p.optInBooze} onChange={(v) => set("optInBooze", v)} title="Do you plan on drinking?" sub={`$${TRIP.boozeBudget} for drinks`} />
+            <div className="field">
+              <span className="label">Eating with us?</span>
+              <YesNo value={eatPicked ? p.agreeFood : null} onChange={(v) => { setEatPicked(true); set("agreeFood", v); }}
+                yes="I'm in" yesSub={p.hasCar ? "Free for drivers" : `$${TRIP.foodBudget}`} no="I'm out" noSub="$0" />
+            </div>
+            <div className="field">
+              <span className="label">Drinking with us?</span>
+              <YesNo value={drinkPicked ? p.optInBooze : null} onChange={(v) => { setDrinkPicked(true); set("optInBooze", v); }}
+                yes="I'm in" yesSub={`$${TRIP.boozeBudget}`} no="I'm out" noSub="$0" />
             </div>
             <div className="field">
               <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>
