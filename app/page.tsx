@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { GROUP_GEAR, ITINERARY, MEALS, TRIP } from "@/lib/trip";
+import { GROUP_GEAR, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
 import { bill, transportTotals, usd } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
@@ -69,23 +69,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           <Link className="btn block-btn" href="/packing" style={{ marginTop: 16 }}>Open my list</Link>
         </section>
 
-        <section className="block">
-          <h2 className="d d-m" style={{ marginBottom: 16 }}>The plan</h2>
-          {ITINERARY.map((d) => (
-            <div className="day" key={d.day}>
-              <h3 className="d d-s">{d.day}</h3>
-              <ul className="tl">
-                {d.items.map((i) => (
-                  <li key={i.time + i.what} className={/6:00 pm|7:30|By 1/.test(i.time) ? "hot" : ""}>
-                    <span className="when mono faint">{i.time}</span>
-                    <span className="what">{i.what}</span>
-                    {i.note && <div className="muted" style={{ fontSize: 15 }}>{i.note}</div>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
 
         <section className="block">
           <h2 className="d d-m" style={{ marginBottom: 12 }}>Food</h2>
@@ -116,14 +99,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
         </section>
 
         <section className="block">
-          <h2 className="d d-m" style={{ marginBottom: 12 }}>Field notes</h2>
-          <ul className="list">
-            <li>Sunset Friday is {TRIP.sunsetFriday}. We pitch the dome in the dark, so keep a headlamp in your pocket.</li>
-            <li>Nights drop to the mid-40s °F with wind off the water. Pack one more layer than you think.</li>
-            <li>Signal fades after Tomales. Download offline maps before you leave.</li>
-            <li>Leave no trace. Everything we bring in goes home with us.</li>
-          </ul>
-          <h3 className="mono faint" style={{ margin: "20px 0 8px" }}>Already handled by the group</h3>
+          <h2 className="d d-m" style={{ marginBottom: 12 }}>Already handled by the group</h2>
           <p style={{ margin: 0 }}>{GROUP_GEAR.join(" · ")}</p>
         </section>
 
