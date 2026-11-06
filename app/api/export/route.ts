@@ -19,12 +19,12 @@ export async function GET() {
   const all = await db.listProfiles();
   const byPhone = new Map(all.map((p) => [p.phone, p]));
   const bills = new Map(computeLogistics(all).money.bills.map((b) => [b.p.phone, b]));
-  const header = ["name", "phone", "pickup_area", "pickup_lat", "pickup_lng", "driving", "car_seats", "trunk", "riding_with", "sunday", "back_by", "sleeping_bag", "pad", "lending", "tents_to_lend", "bringing", "dietary", "dietary_notes", "venmo", "food_usd", "booze_usd", "transport_usd", "fuel_spent_usd", "toll_spent_usd", "group_spent_usd", "total_usd", "notes", "onboarded"];
+  const header = ["name", "phone", "getting_there", "arriving", "leaving", "pickup_area", "pickup_lat", "pickup_lng", "driving", "car_seats", "trunk", "riding_with", "sunday", "back_by", "sleeping_bag", "pad", "lending", "tents_to_lend", "bringing", "dietary", "dietary_notes", "venmo", "food_usd", "booze_usd", "transport_usd", "fuel_spent_usd", "toll_spent_usd", "group_spent_usd", "total_usd", "notes", "onboarded"];
   const rows = all.map((p) => {
     const b = bills.get(p.phone);
     const ex = Object.entries(p.extras || {}).filter(([, n]) => n > 0);
     return [
-      p.name, p.phone, p.area, p.pickup?.lat ?? "", p.pickup?.lng ?? "", p.hasCar ? "yes" : "no", p.hasCar ? p.carSeats : "",
+      p.name, p.phone, p.hasCar ? "driving" : p.ownWay ? "own way" : "riding", p.arrive, p.leave, p.area, p.pickup?.lat ?? "", p.pickup?.lng ?? "", p.hasCar ? "yes" : "no", p.hasCar ? p.carSeats : "",
       p.hasCar ? TRUNK_OPTIONS[p.trunk ?? 1] : "", p.rideWith ? byPhone.get(p.rideWith)?.name ?? "" : "", p.returnPref, p.returnBy,
       p.sleepSetup, p.padSetup,
       ex.filter(([k]) => k === "sleepingBag" || k === "sleepingPad").map(([k, n]) => `${k}:${n}`).join(" "),

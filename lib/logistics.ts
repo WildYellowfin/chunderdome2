@@ -1,5 +1,23 @@
-import { BRING_GEAR, CLAY_HOUSE, kmBetween, LEND_GEAR, TRIP } from "./trip";
+import { ARRIVE_OPTIONS, BRING_GEAR, CLAY_HOUSE, kmBetween, LEND_GEAR, TRIP } from "./trip";
 import type { Profile } from "./types";
+
+// ---- Who's there when ---------------------------------------------------------
+
+type Stay = Pick<Profile, "arrive" | "leave">;
+export const wholeWeekend = (p: Stay) => p.arrive === "fri" && p.leave === "sun";
+export const friNight = (p: Stay) => p.arrive === "fri";
+export const satNight = (p: Stay) => p.leave === "sun";
+export const sleepsOver = (p: Stay) => friNight(p) || satNight(p);
+
+/** "Saturday morning to Sunday", or "Whole weekend". */
+export function stayLabel(p: Stay) {
+  if (wholeWeekend(p)) return "Whole weekend";
+  const a = ARRIVE_OPTIONS.find((o) => o.value === p.arrive)!;
+  return `${a.title} ${a.sub} to ${p.leave === "sun" ? "Sunday" : "Saturday evening"}`;
+}
+
+/** In one of the group's cars, as a driver or a rider. */
+export const inCars = (p: Pick<Profile, "ownWay">) => !p.ownWay;
 
 export interface CarSummary {
   driver: Profile;
@@ -9,19 +27,33 @@ export interface CarSummary {
 }
 
 /** What one person owes (positive) or is owed (negative). */
+// People making their own way pay for their own petrol and stay out of the cars' split.
 export function bill(p: Profile, transportShare: number) {
   const food = p.agreeFood && !p.hasCar ? TRIP.foodBudget : 0;
   const booze = p.optInBooze ? TRIP.boozeBudget : 0;
+  const transport = inCars(p) ? transportShare : 0;
   const spent = (p.hasCar ? (p.fuelCost || 0) + (p.tollCost || 0) : 0) + (p.groupCost || 0);
-  const total = food + booze + transportShare - spent;
-  return { food, booze, transport: transportShare, spent, total: Math.round(total * 100) / 100 };
+  const total = food + booze + transport - spent;
+  return { food, booze, transport, spent, total: Math.round(total * 100) / 100 };
 }
 
 export function transportTotals(people: Profile[]) {
   const drivers = people.filter((p) => p.hasCar);
+  const riding = people.filter(inCars).length;
   const total = drivers.reduce((s, d) => s + (d.fuelCost || 0) + (d.tollCost || 0), 0);
   const logged = drivers.filter((d) => (d.fuelCost || 0) + (d.tollCost || 0) > 0).length;
-  return { total, logged, drivers: drivers.length, share: people.length ? total / people.length : 0 };
+  return { total, logged, drivers: drivers.length, riding, share: riding ? total / riding : 0 };
+}
+
+/** Seats offered vs people who need one, leaving out whoever is asking. */
+export function seatCount(people: Profile[], except: string) {
+  const others = people.filter((p) => p.phone !== except);
+  const drivers = others.filter((p) => p.hasCar);
+  return {
+    cars: drivers.length,
+    spare: drivers.reduce((s, d) => s + Math.max(0, d.carSeats - 1), 0),
+    riders: others.filter((p) => !p.hasCar && inCars(p)).length,
+  };
 }
 
 export const usd = (n: number) => `${n < 0 ? "−" : ""}$${Math.abs(n).toFixed(Number.isInteger(Math.round(n * 100) / 100) ? 0 : 2)}`;
@@ -38,13 +70,22 @@ export function computeLogistics(all: Profile[]) {
     return { driver: d, seats: d.carSeats, passengers, free: d.carSeats - 1 - passengers.length };
   });
   const totalSeats = drivers.reduce((s, d) => s + d.carSeats, 0);
-  const needRide = people.filter((p) => !p.hasCar);
+  const needRide = people.filter((p) => !p.hasCar && inCars(p));
   const unassigned = needRide.filter((p) => !p.rideWith || !byPhone.get(p.rideWith)?.hasCar);
-  const seatsNeeded = people.length;
+  const ownWay = people.filter((p) => !inCars(p));
+  const seatsNeeded = people.length - ownWay.length;
+
+  // Who's there when.
+  const weekend = {
+    friNight: people.filter(friNight),
+    saturday: people,
+    satNight: people.filter(satNight),
+    partial: people.filter((p) => !wholeWeekend(p)),
+  };
 
   // Areas, nearest to Clay House first.
   const areas = new Map<string, { people: Profile[]; drivers: Profile[]; seats: number; km: number }>();
-  for (const p of people) {
+  for (const p of people.filter(inCars)) {
     const key = p.area || "No pin yet";
     const a = areas.get(key) ?? { people: [], drivers: [], seats: 0, km: p.pickup ? kmBetween(p.pickup, CLAY_HOUSE) : 999 };
     a.people.push(p);
@@ -56,8 +97,8 @@ export function computeLogistics(all: Profile[]) {
   }
 
   // Sleep gear: need vs spare
-  const needBag = people.filter((p) => p.sleepSetup === "need");
-  const needPad = people.filter((p) => p.padSetup === "need");
+  const needBag = people.filter((p) => sleepsOver(p) && p.sleepSetup === "need");
+  const needPad = people.filter((p) => sleepsOver(p) && p.padSetup === "need");
   const sum = (key: string) => people.reduce((s, p) => s + (p.extras[key] || 0), 0);
   const owners = (key: string) => people.filter((p) => (p.extras[key] || 0) > 0).map((p) => ({ name: p.name, n: p.extras[key] }));
   const tents = people.flatMap((p) => (p.tents || []).map((sleeps) => ({ name: p.name, sleeps })));
@@ -72,6 +113,7 @@ export function computeLogistics(all: Profile[]) {
   // Sleeping space
   const spareTentBeds = tents.reduce((s, t) => s + t.sleeps, 0);
   const beds = TRIP.tentCapacity + TRIP.groupSmallTentBeds + spareTentBeds;
+  const sleepers = Math.max(weekend.friNight.length, weekend.satNight.length);
 
   // Money
   const transport = transportTotals(people);
@@ -91,11 +133,12 @@ export function computeLogistics(all: Profile[]) {
   for (const p of people) for (const d of p.dietary) diet.set(d, [...(diet.get(d) ?? []), p.name]);
   const dietNotes = people.filter((p) => p.dietaryNotes.trim()).map((p) => ({ name: p.name, note: p.dietaryNotes }));
 
-  // Sunday
+  // Sunday, for whoever is coming back in the cars.
+  const goingHome = people.filter((p) => inCars(p) && satNight(p));
   const returning = {
-    onTime: people.filter((p) => p.returnPref === "1pm"),
-    later: people.filter((p) => p.returnPref === "later"),
-    earlier: people.filter((p) => p.returnPref === "earlier").sort((a, b) => a.returnBy.localeCompare(b.returnBy)),
+    onTime: goingHome.filter((p) => p.returnPref === "1pm"),
+    later: goingHome.filter((p) => p.returnPref === "later"),
+    earlier: goingHome.filter((p) => p.returnPref === "earlier").sort((a, b) => a.returnBy.localeCompare(b.returnBy)),
   };
 
   return {
@@ -106,9 +149,11 @@ export function computeLogistics(all: Profile[]) {
     seatsNeeded,
     needRide,
     unassigned,
+    ownWay,
+    weekend,
     areas: [...areas.entries()].sort((a, b) => a[1].km - b[1].km),
     gear,
-    sleep: { beds, spareTentBeds, domeCap: TRIP.tentCapacity },
+    sleep: { beds, sleepers, spareTentBeds, domeCap: TRIP.tentCapacity },
     money,
     diet: [...diet.entries()].sort((a, b) => b[1].length - a[1].length),
     dietNotes,

@@ -226,6 +226,7 @@ th { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 
 .seg { display: grid; border: 2px solid var(--rule); background: var(--paper-hi); }
 .seg.two { grid-template-columns: 1fr 1fr; }
 .seg.four { grid-template-columns: repeat(4, 1fr); }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
 .seg button { min-height: 60px; border: 0; background: transparent; cursor: pointer; font-weight: 700; font-size: 17px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .seg button + button { border-left: 2px solid var(--rule); }
 .seg button[aria-checked="true"] { background: var(--ink); color: var(--paper-hi); }
@@ -252,6 +253,15 @@ th { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 
 .stepper.tent .linkbtn { font-size: 13px; margin-top: 2px; color: var(--ink-2); }
 .add-row { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 0; border-top: 1px solid var(--hair); background: transparent; cursor: pointer; font-weight: 600; text-align: left; }
 .add-row span { width: 26px; height: 26px; display: grid; place-items: center; border: 2px dashed var(--rule); font-size: 18px; line-height: 1; }
+
+/* Part of the weekend: arriving and leaving, under the checkbox */
+.stay { display: grid; gap: 8px; padding: 6px 14px 14px; border-top: 1px solid var(--hair); }
+.stay .mono { margin-top: 8px; }
+.stay .seg button { min-height: 54px; font-size: 16px; }
+
+/* A heading with an "Optional" tag beside it */
+.head-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.flow-body .head-opt h2, .head-opt h3 { margin: 0; }
 
 /* Money slide */
 .bill { border: 2px solid var(--rule); background: var(--paper-hi); }

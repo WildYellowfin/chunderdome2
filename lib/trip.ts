@@ -111,6 +111,18 @@ export const RETURN_OPTIONS = [
   { value: "earlier", title: "I need to be back earlier" },
 ] as const;
 
+// Only asked of people who can't make the whole weekend.
+export const ARRIVE_OPTIONS = [
+  { value: "fri", title: "Friday", sub: "night" },
+  { value: "sat-am", title: "Saturday", sub: "morning" },
+  { value: "sat-pm", title: "Saturday", sub: "afternoon" },
+] as const;
+
+export const LEAVE_OPTIONS = [
+  { value: "sun", title: "Sunday", sub: "with everyone" },
+  { value: "sat", title: "Saturday", sub: "evening" },
+] as const;
+
 export const SEAT_OPTIONS = [5, 7, 8] as const;
 
 export const TRUNK_OPTIONS = ["A couple of small bags", "A few duffels and backpacks", "Several large suitcases"] as const;

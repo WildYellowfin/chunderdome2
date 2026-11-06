@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireOnboarded } from "@/lib/auth";
 import { signOut } from "@/app/actions";
 import { db } from "@/lib/db";
-import { bill, transportTotals, usd } from "@/lib/logistics";
+import { bill, inCars, satNight, sleepsOver, stayLabel, transportTotals, usd } from "@/lib/logistics";
 import { BRING_GEAR, LEND_GEAR, RETURN_OPTIONS, TRUNK_OPTIONS } from "@/lib/trip";
 import TabBar from "@/components/TabBar";
 import Costs from "@/components/Costs";
@@ -26,10 +26,11 @@ export default async function MePage() {
   const ret = RETURN_OPTIONS.find((o) => o.value === p.returnPref)?.title ?? "";
   const rows: [string, React.ReactNode][] = [
     ["Phone", p.phone],
-    ["Pickup", p.area || "No pin yet"],
-    ["Car", p.hasCar ? `Driving, ${p.carSeats} seats · ${TRUNK_OPTIONS[p.trunk ?? 1].toLowerCase()}` : "Needs a seat"],
-    ["Sunday", p.returnPref === "earlier" ? `Back by ${time12(p.returnBy)}` : ret],
-    ["Sleep", `${BAG[p.sleepSetup]} · ${p.padSetup === "own" ? "own pad" : "borrowing a pad"}`],
+    ["Weekend", stayLabel(p)],
+    ["Getting there", p.hasCar ? `Driving, ${p.carSeats} seats · ${TRUNK_OPTIONS[p.trunk ?? 1].toLowerCase()}` : p.ownWay ? "Making my own way" : "Riding with the group"],
+    ...(inCars(p) ? [[p.hasCar ? "From" : "Pickup", p.area || "No pin yet"] as [string, string]] : []),
+    ...(inCars(p) && satNight(p) ? [["Sunday", p.returnPref === "earlier" ? `Back by ${time12(p.returnBy)}` : ret] as [string, string]] : []),
+    ["Sleep", sleepsOver(p) ? `${BAG[p.sleepSetup]} · ${p.padSetup === "own" ? "own pad" : "borrowing a pad"}` : "Not staying over"],
     ["Lending", lending.length ? lending.join(", ") : "Nothing"],
     ["Bringing", bringing.length ? bringing.join(", ") : "Nothing listed"],
     ["Diet", [...p.dietary, p.dietaryNotes].filter(Boolean).join(", ") || "No restrictions"],
@@ -53,7 +54,7 @@ export default async function MePage() {
           <ul className="list">
             <li className="row spread"><span>Food</span><span>{!p.agreeFood ? "Not eating with us" : p.hasCar ? "Free, you're driving" : usd(b.food)}</span></li>
             {b.booze > 0 && <li className="row spread"><span>Drinks</span><span>{usd(b.booze)}</span></li>}
-            <li className="row spread"><span>Fuel and tolls share</span><span>{T.total ? usd(b.transport) : "After the trip"}</span></li>
+            <li className="row spread"><span>Fuel and tolls share</span><span>{p.ownWay ? "None, own way" : T.total ? usd(b.transport) : "After the trip"}</span></li>
             {b.spent > 0 && <li className="row spread"><span>Group expenses</span><span>−{usd(b.spent)}</span></li>}
             <li className="row spread"><strong>{b.total < 0 ? "You're owed" : "Total"}</strong><strong className="d d-s">{usd(Math.abs(b.total))}</strong></li>
           </ul>
