@@ -3,15 +3,20 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProfile } from "@/app/actions";
-import { BRING_GEAR, CLAY_HOUSE, DIETARY_OPTIONS, LEND_GEAR, MEALS, RETURN_OPTIONS, SEAT_OPTIONS, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
+import { ARRIVE_OPTIONS, BRING_GEAR, CLAY_HOUSE, DIETARY_OPTIONS, LEAVE_OPTIONS, LEND_GEAR, MEALS, RETURN_OPTIONS, SEAT_OPTIONS, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
+import { sleepsOver, wholeWeekend } from "@/lib/logistics";
 import type { Profile, Trunk } from "@/lib/types";
 import PickupMap from "./PickupMap";
+
+type Travel = "ride" | "drive" | "own";
+export type Seats = { cars: number; spare: number; riders: number };
+const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
 
 const STEPS = ["You", "Getting there", "Sleeping", "Gear", "Food", "Money"];
 
 function Opt<T extends string>({
   value, current, onPick, title, sub, name,
-}: { value: T; current: T; onPick: (v: T) => void; title: string; sub?: string; name: string }) {
+}: { value: T; current: T | null; onPick: (v: T) => void; title: string; sub?: string; name: string }) {
   const on = current === value;
   return (
     <label className={`opt radio ${on ? "on" : ""}`}>
@@ -106,7 +111,17 @@ function TrunkIcon({ level }: { level: Trunk }) {
   );
 }
 
-export default function ProfileForm({ initial, firstTime }: { initial: Profile; firstTime: boolean }) {
+function Choice<T extends string>({ label, options, value, onPick }: { label: string; options: readonly { value: T; title: string; sub: string }[]; value: T; onPick: (v: T) => void }) {
+  return (
+    <div className={`seg ${options.length === 3 ? "three" : "two"}`} role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onPick(o.value)}>{o.title}<span>{o.sub}</span></button>
+      ))}
+    </div>
+  );
+}
+
+export default function ProfileForm({ initial, firstTime, seats }: { initial: Profile; firstTime: boolean; seats?: Seats }) {
   const router = useRouter();
   const [p, setP] = useState<Profile>(initial);
   const [step, setStep] = useState(0);
@@ -118,11 +133,27 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
   // First time through, eating and drinking start unanswered so everyone picks one on purpose.
   const [eatPicked, setEatPicked] = useState(!firstTime);
   const [drinkPicked, setDrinkPicked] = useState(!firstTime);
+  // Same for how they're getting there: no default, so nobody slides past "make my own way".
+  const [travelPicked, setTravelPicked] = useState(!firstTime);
+  const travel: Travel | null = !travelPicked ? null : p.hasCar ? "drive" : p.ownWay ? "own" : "ride";
+  function pickTravel(v: Travel) {
+    setTravelPicked(true);
+    setP((x) => ({ ...x, hasCar: v === "drive", ownWay: v === "own", carSeats: v === "drive" && x.carSeats < 2 ? 5 : x.carSeats }));
+  }
+  // Everyone is there the whole weekend unless they say otherwise.
+  const [partial, setPartial] = useState(!wholeWeekend(initial));
+  function togglePartial(on: boolean) {
+    setPartial(on);
+    if (!on) setP((x) => ({ ...x, arrive: "fri", leave: "sun" }));
+  }
+  const offSchedule = !wholeWeekend(p);
+  const askSunday = travel !== null && travel !== "own" && p.leave === "sun";
 
   function validate(s: number): string | null {
     if (s === 0 && !p.name.trim()) return "What should we call you?";
-    if (s === 0 && !p.pickup) return "Drag the map to drop your pin.";
-    if (s === 1 && p.returnPref === "earlier" && !p.returnBy) return "What time do you need to be back on Sunday?";
+    if (s === 1 && !travel) return "How are you getting there?";
+    if (s === 1 && travel !== "own" && !p.pickup) return travel === "drive" ? "Drag the map to show where you're driving from." : "Drag the map to drop your pickup pin.";
+    if (s === 1 && askSunday && p.returnPref === "earlier" && !p.returnBy) return "What time do you need to be back on Sunday?";
     if (s === 5 && !eatPicked) return "Are you eating with us?";
     if (s === 5 && !drinkPicked) return "Are you drinking with us?";
     return null;
@@ -154,6 +185,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
   }
 
   const owesFood = p.hasCar || !p.agreeFood ? 0 : TRIP.foodBudget;
+  const nothingToSay = step === 3 && BRING_GEAR.every((g) => !p.extras[g.key]);
 
   return (
     <div className="flow">
@@ -184,14 +216,29 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 0 && (
           <>
             <h2 className="d d-l">Who&apos;s this?</h2>
+            {firstTime && <p className="muted">Takes a couple of minutes. Skip anything marked optional, and change any answer later.</p>}
             <div className="field" style={{ marginTop: 18 }}>
               <label htmlFor="name">Your name</label>
               <input id="name" type="text" value={p.name} onChange={(e) => set("name", e.target.value)} autoComplete="name" placeholder="First and last" />
             </div>
             <div className="field">
-              <span className="label">Where should we pick you up?</span>
-              <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>Cars gather at {CLAY_HOUSE.name} ({CLAY_HOUSE.address}).</div>
-              <PickupMap value={p.pickup} onChange={(v, area) => setP((x) => ({ ...x, pickup: v, area }))} />
+              <span className="label">The weekend</span>
+              <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>Friday evening to Sunday lunchtime, Nov 13–15.</div>
+              <div className="opts">
+                <label className={`opt tick ${partial ? "on" : ""}`}>
+                  <input type="checkbox" checked={partial} onChange={(e) => togglePartial(e.target.checked)} />
+                  <span className="box" aria-hidden />
+                  <span><span className="t">I can&apos;t make the whole weekend</span></span>
+                </label>
+                {partial && (
+                  <div className="stay">
+                    <span className="mono faint">Arriving</span>
+                    <Choice label="Arriving" options={ARRIVE_OPTIONS} value={p.arrive} onPick={(v) => set("arrive", v)} />
+                    <span className="mono faint">Leaving</span>
+                    <Choice label="Leaving" options={LEAVE_OPTIONS} value={p.leave} onPick={(v) => set("leave", v)} />
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -199,13 +246,28 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step === 1 && (
           <>
             <h2 className="d d-l">Getting there</h2>
-            <p className="muted">Cars leave at 6 PM Friday. Back by 1 PM Sunday.</p>
-            <div className="field">
-              <span className="label">Do you have a car you&apos;re willing to drive?</span>
-              <YesNo value={p.hasCar} onChange={(v) => setP((x) => ({ ...x, hasCar: v, carSeats: v && x.carSeats < 2 ? 5 : x.carSeats }))} yes="Yes, I'll drive" no="No car" />
-              <div className="hint">Drivers eat for free.</div>
+            <p className="muted">
+              Most of us carpool up from SF. Cars leave {CLAY_HOUSE.name} ({CLAY_HOUSE.address}) at 6 PM Friday and are back by 1 PM Sunday.
+              If you ride, we&apos;ll match you with a driver near you and show you who on your home page.
+            </p>
+            {seats && seats.cars + seats.riders > 0 && (
+              <p className="hint" style={{ marginTop: -4 }}>
+                So far: {n(seats.riders, "person", "people")} riding, {n(seats.spare, "spare seat")} in {n(seats.cars, "car")}.
+                {seats.spare < seats.riders && " We could use another driver."}
+              </p>
+            )}
+            <div className="field" style={{ marginTop: 18 }}>
+              <span className="label">How are you getting there?</span>
+              <div className="opts">
+                <Opt name="travel" value="ride" current={travel} onPick={pickTravel} title="Ride with the group" sub="We'll find you a seat in a car." />
+                <Opt name="travel" value="drive" current={travel} onPick={pickTravel} title="Drive, and take people" sub="Drivers eat for free." />
+                <Opt name="travel" value="own" current={travel} onPick={pickTravel} title="Make my own way" sub="Drive yourself, get dropped off, whatever works. No pickup, and you're out of the fuel split." />
+              </div>
+              {offSchedule && travel && travel !== "own" && (
+                <div className="hint">The cars go up Friday evening and come back Sunday, so on your schedule you may need to make your own way.</div>
+              )}
             </div>
-            {p.hasCar && (
+            {travel === "drive" && (
               <>
                 <div className="field">
                   <span className="label">How big is it?</span>
@@ -217,45 +279,62 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
                 </div>
               </>
             )}
-            <div className="field">
-              <span className="label">Getting home on Sunday</span>
-              <div className="opts">
-                {RETURN_OPTIONS.map((o) => (
-                  <Opt key={o.value} name="ret" value={o.value} current={p.returnPref} onPick={(v) => set("returnPref", v)} title={o.title} />
-                ))}
-              </div>
-              {p.returnPref === "earlier" && (
-                <div className="backby">
-                  <label htmlFor="rb">Back in SF by</label>
-                  <input id="rb" type="time" value={p.returnBy} min="06:00" max="13:00" step={900} onChange={(e) => set("returnBy", e.target.value)} />
+            {(travel === "ride" || travel === "drive") && (
+              <div className="field">
+                <span className="label">{travel === "drive" ? "Where are you driving from?" : "Where should your driver pick you up?"}</span>
+                <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+                  {travel === "drive" ? "So we can put riders near you in your car." : "Somewhere near home is fine. It doesn't need to be exact."}
                 </div>
-              )}
-            </div>
+                <PickupMap driver={travel === "drive"} value={p.pickup} onChange={(v, area) => setP((x) => ({ ...x, pickup: v, area }))} />
+              </div>
+            )}
+            {askSunday && (
+              <div className="field">
+                <span className="label">Getting home on Sunday</span>
+                <div className="opts">
+                  {RETURN_OPTIONS.map((o) => (
+                    <Opt key={o.value} name="ret" value={o.value} current={p.returnPref} onPick={(v) => set("returnPref", v)} title={o.title} />
+                  ))}
+                </div>
+                {p.returnPref === "earlier" && (
+                  <div className="backby">
+                    <label htmlFor="rb">Back in SF by</label>
+                    <input id="rb" type="time" value={p.returnBy} min="06:00" max="13:00" step={900} onChange={(e) => set("returnBy", e.target.value)} />
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 
         {step === 2 && (
           <>
             <h2 className="d d-l">Sleeping</h2>
-            <p className="muted">It could be as cold as the mid-40s.</p>
-            <div className="field">
-              <span className="label">Sleeping bag</span>
-              <div className="opts">
-                <Opt name="bag" value="bag" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I have one" />
-                <Opt name="bag" value="blanket" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I'll bring warm blankets" />
-                <Opt name="bag" value="need" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I need to borrow one" />
-              </div>
-            </div>
-            <div className="field">
-              <span className="label">Sleeping pad</span>
-              <div className="opts">
-                <Opt name="pad" value="own" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I have one" />
-                <Opt name="pad" value="need" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I need to borrow one" />
-              </div>
-            </div>
+            {!sleepsOver(p) ? (
+              <p className="muted">You&apos;re not staying the night, so nothing to sort here.</p>
+            ) : (
+              <>
+                <p className="muted">It could be as cold as the mid-40s.</p>
+                <div className="field">
+                  <span className="label">Sleeping bag</span>
+                  <div className="opts">
+                    <Opt name="bag" value="bag" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I have one" />
+                    <Opt name="bag" value="blanket" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I'll bring warm blankets" />
+                    <Opt name="bag" value="need" current={p.sleepSetup} onPick={(v) => set("sleepSetup", v)} title="I need to borrow one" />
+                  </div>
+                </div>
+                <div className="field">
+                  <span className="label">Sleeping pad</span>
+                  <div className="opts">
+                    <Opt name="pad" value="own" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I have one" />
+                    <Opt name="pad" value="need" current={p.padSetup} onPick={(v) => set("padSetup", v)} title="I need to borrow one" />
+                  </div>
+                </div>
+              </>
+            )}
 
-            <h3 className="d d-m section-h">Extra gear</h3>
-            <p className="muted">Do you have extra gear you don&apos;t mind lending to fellow chunderdomers?</p>
+            <div className="head-opt section-h"><h3 className="d d-m">Extra gear</h3><span className="tag">Optional</span></div>
+            <p className="muted">Got spare gear you don&apos;t mind lending to fellow chunderdomers?</p>
             <div className="opts field">
               {LEND_GEAR.map((g) => (
                 <Counter key={g.key} label={g.label} value={p.extras[g.key] || 0} onChange={(n) => setExtra(g.key, n)} />
@@ -285,7 +364,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
 
         {step === 3 && (
           <>
-            <h2 className="d d-l">Gear</h2>
+            <div className="head-opt"><h2 className="d d-l">Gear</h2><span className="tag">Optional</span></div>
             <p className="muted">How many are you bringing, counting your own? The group already has the big tent, coolers, stove, and cooking gear.</p>
             <div className="opts field">
               {BRING_GEAR.map((g) => (
@@ -304,7 +383,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
               ))}
             </ul>
             <div className="field">
-              <span className="label">Dietary needs</span>
+              <span className="label">Dietary needs <span className="faint">(if any)</span></span>
               <div className="chips">
                 {DIETARY_OPTIONS.map((d) => {
                   const on = p.dietary.includes(d);
@@ -336,7 +415,9 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
               <YesNo value={drinkPicked ? p.optInBooze : null} onChange={(v) => { setDrinkPicked(true); set("optInBooze", v); }}
                 yes="I'm in" yesSub={`$${TRIP.boozeBudget}`} no="I'm out" noSub="$0" />
             </div>
-            <p className="hint" style={{ marginTop: -6 }}>Fuel and tolls are split evenly across everyone, drivers included.</p>
+            <p className="hint" style={{ marginTop: -6 }}>
+              {p.ownWay ? "You're making your own way, so you're out of the fuel and tolls split." : "Fuel and tolls are split evenly across everyone in the cars, drivers included."}
+            </p>
             <p className="hint" style={{ marginBottom: 18 }}>You can add any group expenses you make on this website, and you&apos;ll be reimbursed.</p>
             <div className="field">
               <label htmlFor="venmo">Venmo username <span className="faint">(optional)</span></label>
@@ -346,7 +427,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
               <label htmlFor="notes">Anything else? <span className="faint">(optional)</span></label>
               <textarea id="notes" value={p.notes} onChange={(e) => set("notes", e.target.value)} />
             </div>
-            <p className="faint" style={{ fontSize: 14 }}>Estimated total before fuel and tolls: ${owesFood + (p.optInBooze ? TRIP.boozeBudget : 0)}.</p>
+            <p className="faint" style={{ fontSize: 14 }}>Estimated total{p.ownWay ? "" : " before fuel and tolls"}: ${owesFood + (p.optInBooze ? TRIP.boozeBudget : 0)}.</p>
           </>
         )}
       </div>
@@ -355,7 +436,7 @@ export default function ProfileForm({ initial, firstTime }: { initial: Profile; 
         {step > 0 && <button type="button" className="btn ghost" onClick={() => go(step - 1)}>Back</button>}
         {!firstTime && step < STEPS.length - 1 && <button type="button" className="btn ghost" onClick={next}>Next</button>}
         {step < STEPS.length - 1 && firstTime
-          ? <button type="button" className="btn" onClick={next}>Next</button>
+          ? <button type="button" className="btn" onClick={next}>{nothingToSay ? "Skip" : "Next"}</button>
           : <button type="button" className="btn" onClick={submit} disabled={pending}>{pending ? "Saving" : firstTime ? "I'm in" : "Save"}</button>}
       </div>
     </div>

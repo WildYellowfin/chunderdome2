@@ -1,5 +1,6 @@
 import type { Profile } from "./types";
 import { BRING_GEAR, LEND_GEAR } from "./trip";
+import { friNight, sleepsOver } from "./logistics";
 
 export interface PackItem {
   id: string;
@@ -17,12 +18,14 @@ export function packingList(p: Profile): PackItem[] {
   const add = (section: string, id: string, label: string, hint?: string) => items.push({ section, id, label, hint });
 
   const S = "Sleep";
-  if (p.sleepSetup === "bag") add(S, "sleeping-bag", "Sleeping bag");
-  if (p.sleepSetup === "blanket") add(S, "blanket", "Warm blankets");
-  if (p.sleepSetup === "need") add(S, "borrow-bag", "Sleeping bag: borrowing one");
-  if (p.padSetup === "own") add(S, "pad", "Sleeping pad");
-  else add(S, "borrow-pad", "Sleeping pad: borrowing one");
-  add(S, "pillow", "Pillow");
+  if (sleepsOver(p)) {
+    if (p.sleepSetup === "bag") add(S, "sleeping-bag", "Sleeping bag");
+    if (p.sleepSetup === "blanket") add(S, "blanket", "Warm blankets");
+    if (p.sleepSetup === "need") add(S, "borrow-bag", "Sleeping bag: borrowing one");
+    if (p.padSetup === "own") add(S, "pad", "Sleeping pad");
+    else add(S, "borrow-pad", "Sleeping pad: borrowing one");
+    add(S, "pillow", "Pillow");
+  }
 
   const E = "Easy to forget";
   add(E, "clothes", "Clothes for 2 days, including warm gear");
@@ -49,7 +52,7 @@ export function packingList(p: Profile): PackItem[] {
   p.tents.forEach((sleeps, i) => add(L, `lend-tent-${i}`, `Tent for ${sleeps}`));
 
   const D = "Friday";
-  add(D, "friday-dinner", "Eat before 6 PM");
+  if (friNight(p)) add(D, "friday-dinner", p.ownWay ? "Dinner before you get there" : "Eat before 6 PM");
 
   return items;
 }

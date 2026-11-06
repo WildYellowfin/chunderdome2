@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db, ownerPhones } from "@/lib/db";
-import { billNote, computeLogistics, usd, venmoLink } from "@/lib/logistics";
+import { billNote, computeLogistics, stayLabel, usd, venmoLink, wholeWeekend } from "@/lib/logistics";
 import { CLAY_HOUSE, kmBetween, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
 import { addAdmin, removeAdmin, removePerson } from "@/app/actions";
 import TabBar from "@/components/TabBar";
@@ -33,7 +33,7 @@ export default async function AdminPage() {
 
   const riders = [...L.needRide].sort((a, b) => a.area.localeCompare(b.area));
   const seatGap = L.totalSeats - L.seatsNeeded;
-  const bedGap = L.sleep.beds - L.people.length;
+  const bedGap = L.sleep.beds - L.sleep.sleepers;
   const bagGap = L.gear.bags.spare - L.gear.bags.need;
   const padGap = L.gear.pads.spare - L.gear.pads.need;
   const driverOptions = L.cars.map((c) => ({ phone: c.driver.phone, label: `${c.driver.name} · ${c.free} free` }));
@@ -55,9 +55,10 @@ export default async function AdminPage() {
   const stats: { v: string | number; l: string; t?: string }[] = [
     { v: `${L.people.length}/${TRIP.rsvps}`, l: `signed up${L.pending.length ? `, ${L.pending.length} part-way` : ""}`, t: L.people.length >= TRIP.rsvps ? "ok" : undefined },
     { v: `${L.cars.length}`, l: `cars, ${L.totalSeats} seats` },
-    { v: signed(seatGap), l: `seats vs ${L.seatsNeeded} people`, t: tone(seatGap) },
+    { v: signed(seatGap), l: `seats vs ${L.seatsNeeded} people in cars`, t: tone(seatGap) },
+    { v: L.ownWay.length, l: "making their own way" },
     { v: L.unassigned.length, l: "riders without a car yet", t: L.unassigned.length ? "warn" : "ok" },
-    { v: signed(bedGap), l: `tent beds (${L.sleep.beds}) vs people`, t: tone(bedGap) },
+    { v: signed(bedGap), l: `tent beds (${L.sleep.beds}) vs busiest night`, t: tone(bedGap) },
     { v: signed(bagGap), l: `bags: ${L.gear.bags.need} needed, ${L.gear.bags.spare} to lend`, t: tone(bagGap) },
     { v: signed(padGap), l: `pads: ${L.gear.pads.need} needed, ${L.gear.pads.spare} to lend`, t: tone(padGap) },
     { v: usd(L.money.foodTotal + L.money.boozeTotal), l: `${usd(L.money.foodTotal)} food, ${usd(L.money.boozeTotal)} drinks` },
@@ -130,6 +131,23 @@ export default async function AdminPage() {
           </section>
 
           <section className="block">
+            <h2 className="d d-m" style={{ marginBottom: 12 }}>The weekend</h2>
+            <ul className="list">
+              <li><div className="row spread"><strong>Friday night</strong><span className="mono">{L.weekend.friNight.length}</span></div></li>
+              <li><div className="row spread"><strong>Saturday</strong><span className="mono">{L.weekend.saturday.length}</span></div></li>
+              <li><div className="row spread"><strong>Saturday night</strong><span className="mono">{L.weekend.satNight.length}</span></div></li>
+              <li>
+                <div className="row spread"><strong>Not there the whole time</strong><span className={`tag ${L.weekend.partial.length ? "warn" : ""}`}>{L.weekend.partial.length}</span></div>
+                {L.weekend.partial.length > 0 && <div className="hint" style={{ marginTop: 2 }}>{L.weekend.partial.map((p) => `${p.name}: ${stayLabel(p).toLowerCase()}`).join(", ")}</div>}
+              </li>
+              <li>
+                <div className="row spread"><strong>Making their own way</strong><span className="mono">{L.ownWay.length}</span></div>
+                {L.ownWay.length > 0 && <div className="hint" style={{ marginTop: 2 }}>{L.ownWay.map((p) => p.name).join(", ")}</div>}
+              </li>
+            </ul>
+          </section>
+
+          <section className="block">
             <h2 className="d d-m" style={{ marginBottom: 12 }}>Sunday</h2>
             <ul className="list">
               <li><div className="row spread"><strong>1 PM is perfect</strong><span className="mono">{L.returning.onTime.length}</span></div></li>
@@ -150,7 +168,7 @@ export default async function AdminPage() {
               <GapRow label="Sleeping bags" need={L.gear.bags.need} spare={L.gear.bags.spare} who={L.gear.bags.who} lenders={L.gear.lend[0].owners} />
               <GapRow label="Sleeping pads" need={L.gear.pads.need} spare={L.gear.pads.spare} who={L.gear.pads.who} lenders={L.gear.lend[1].owners} />
               <li>
-                <div className="row spread"><strong>Tent beds</strong><span className={`tag ${bedGap >= 0 ? "ok" : "bad"}`}>{L.sleep.beds} for {L.people.length}</span></div>
+                <div className="row spread"><strong>Tent beds</strong><span className={`tag ${bedGap >= 0 ? "ok" : "bad"}`}>{L.sleep.beds} for {L.sleep.sleepers}</span></div>
                 <div className="hint" style={{ marginTop: 2 }}>
                   Chunderdome {L.sleep.domeCap} · group tents ~{TRIP.groupSmallTentBeds}
                   {L.gear.tents.length > 0 && <> · lent: {L.gear.tents.map((t) => `${t.name}'s ${t.sleeps}-person`).join(", ")}</>}
@@ -187,7 +205,7 @@ export default async function AdminPage() {
         <section className="block">
           <div className="block-head"><h2 className="d d-m">Money</h2><span className="mono faint">{L.money.eaters} eating · {L.money.boozeIn} drinking</span></div>
           <p className="muted" style={{ fontSize: 15 }}>
-            Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across {L.people.length}. Drivers eat free, and what they spent comes off their total.
+            Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across the {T.riding} people in cars. Drivers eat free, and what they spent comes off their total. People making their own way pay no transport.
           </p>
           {(() => {
             const lines = others
@@ -209,7 +227,7 @@ export default async function AdminPage() {
                 <div className="hint" style={{ marginTop: 2 }}>
                   {b.p.hasCar ? "Food free" : `Food ${usd(b.food)}`}
                   {b.booze > 0 && ` · drinks ${usd(b.booze)}`}
-                  {` · transport ${usd(b.transport)}`}
+                  {b.p.ownWay ? " · own way, no transport" : ` · transport ${usd(b.transport)}`}
                   {b.spent > 0 && ` · spent\u00a0−${usd(b.spent)}`}
                 </div>
                 <div className="row" style={{ marginTop: 8, gap: 8 }}>
@@ -234,7 +252,7 @@ export default async function AdminPage() {
               </div>
               <div className="hint" style={{ marginTop: 2 }}>
                 <a href={`sms:${p.phone}`}>{p.phone}</a>
-                {p.onboardedAt && <> · {p.hasCar ? `Driving (${p.carSeats})` : p.rideWith ? `With ${nameOf.get(p.rideWith)}` : "Needs a seat"} · {p.area || "no pin"}</>}
+                {p.onboardedAt && <> · {p.hasCar ? `Driving (${p.carSeats})` : p.ownWay ? "Own way" : p.rideWith ? `With ${nameOf.get(p.rideWith)}` : "Needs a seat"}{p.ownWay ? "" : ` · ${p.area || "no pin"}`}{wholeWeekend(p) ? "" : ` · ${stayLabel(p)}`}</>}
               </div>
               {p.notes && <div style={{ fontSize: 15, marginTop: 4 }}>“{p.notes}”</div>}
               {p.phone !== me && (

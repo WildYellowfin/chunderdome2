@@ -18,7 +18,7 @@ export function clayHouseMarker() {
   return el;
 }
 
-export default function PickupMap({ value, onChange }: { value: LatLng | null; onChange: (v: LatLng, area: string) => void }) {
+export default function PickupMap({ value, onChange, driver = false }: { value: LatLng | null; onChange: (v: LatLng, area: string) => void; driver?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const armed = useRef(false); // ignore camera moves the person didn't make
@@ -126,14 +126,14 @@ export default function PickupMap({ value, onChange }: { value: LatLng | null; o
       <div className="pmap-read" aria-live="polite">
         {value ? (
           <>
-            <span className="mono faint">Pick me up near</span>
+            <span className="mono faint">{driver ? "Driving from near" : "Pick me up near"}</span>
             <strong className="d d-s">{atHouse ? CLAY_HOUSE.name : placeName(value)}</strong>
             <span className="mono">{atHouse ? "Right here" : `${dist!.toFixed(dist! < 10 ? 1 : 0)} mi from ${CLAY_HOUSE.name}`}</span>
           </>
         ) : (
           <>
             <span className="mono faint">Drag the map</span>
-            <strong>Put the pin where you&apos;d like a ride from</strong>
+            <strong>{driver ? "Put the pin where you\u2019ll set off from" : "Put the pin where you\u2019d like a ride from"}</strong>
           </>
         )}
       </div>

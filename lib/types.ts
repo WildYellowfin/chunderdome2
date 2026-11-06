@@ -1,6 +1,9 @@
 export type SleepSetup = "bag" | "blanket" | "need";
 export type PadSetup = "own" | "need";
 export type ReturnPref = "1pm" | "later" | "earlier";
+/** Most people come for the whole weekend; these only change for those who don't. */
+export type Arrive = "fri" | "sat-am" | "sat-pm";
+export type Leave = "sun" | "sat";
 /** 0 = a couple of small bags, 1 = a few duffels, 2 = several large suitcases */
 export type Trunk = 0 | 1 | 2;
 
@@ -15,9 +18,13 @@ export interface Profile {
   pickup: LatLng | null; // dropped pin, rounded to ~100 m
   area: string; // neighbourhood label derived from the pin
 
-  hasCar: boolean; // has a car and is willing to drive it
+  hasCar: boolean; // driving one of the group's cars, taking riders
+  ownWay: boolean; // getting there on their own: no pickup, no seat, out of the fuel split
   carSeats: number; // total seats including the driver
   trunk: Trunk; // trunk space left with the car full
+
+  arrive: Arrive;
+  leave: Leave;
 
   returnPref: ReturnPref;
   returnBy: string; // "HH:MM" on Sunday, when returnPref is "earlier"
@@ -59,8 +66,11 @@ export function emptyProfile(phone: string): Profile {
     pickup: null,
     area: "",
     hasCar: false,
+    ownWay: false,
     carSeats: 5,
     trunk: 1,
+    arrive: "fri",
+    leave: "sun",
     returnPref: "1pm",
     returnBy: "",
     sleepSetup: "bag",

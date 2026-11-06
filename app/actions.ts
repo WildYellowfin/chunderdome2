@@ -88,13 +88,24 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
 
   const name = str(input.name, 60);
   if (!name) return { error: "We need your name." };
-  const lat = num(input.pickup?.lat);
-  const lng = num(input.pickup?.lng);
-  if (!(lat > 36 && lat < 39.5 && lng > -124 && lng < -121)) return { error: "Drop your pickup pin somewhere in the Bay Area." };
-  const pickup = { lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000 };
 
   const hasCar = !!input.hasCar;
-  const returnPref = oneOf(input.returnPref, ["1pm", "later", "earlier"] as const, "1pm");
+  const ownWay = !hasCar && !!input.ownWay;
+  const arrive = oneOf(input.arrive, ["fri", "sat-am", "sat-pm"] as const, "fri");
+  const leave = oneOf(input.leave, ["sun", "sat"] as const, "sun");
+
+  // Only people in the cars need a pin: riders to be picked up, drivers to match riders nearby.
+  let pickup: Profile["pickup"] = null;
+  if (!ownWay) {
+    const lat = num(input.pickup?.lat);
+    const lng = num(input.pickup?.lng);
+    if (!(lat > 36 && lat < 39.5 && lng > -124 && lng < -121)) return { error: "Drop your pin somewhere in the Bay Area." };
+    pickup = { lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000 };
+  }
+
+  // Sunday timing only matters to people coming home in the cars on Sunday.
+  const askSunday = !ownWay && leave === "sun";
+  const returnPref = askSunday ? oneOf(input.returnPref, ["1pm", "later", "earlier"] as const, "1pm") : "1pm";
   const returnBy = returnPref === "earlier" && /^\d{2}:\d{2}$/.test(str(input.returnBy)) ? str(input.returnBy) : "";
   if (returnPref === "earlier" && !returnBy) return { error: "Tell us when you need to be back on Sunday." };
 
@@ -109,8 +120,11 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     ...profile,
     name,
     pickup,
-    area: placeName(pickup),
+    area: pickup ? placeName(pickup) : "",
     hasCar,
+    ownWay,
+    arrive,
+    leave,
     carSeats: hasCar ? int(input.carSeats, 2, 12, 5) : 0,
     trunk: hasCar ? (int(input.trunk, 0, 2, 1) as Trunk) : 1,
     returnPref,
@@ -128,8 +142,8 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     tollCost: hasCar ? profile.tollCost : 0,
     groupCost: profile.groupCost || 0,
     notes: str(input.notes, 500),
-    // A driver always rides in their own car.
-    rideWith: hasCar ? profile.phone : profile.rideWith === profile.phone ? null : profile.rideWith,
+    // A driver always rides in their own car; someone making their own way rides in none.
+    rideWith: hasCar ? profile.phone : ownWay || profile.rideWith === profile.phone ? null : profile.rideWith,
     onboardedAt: profile.onboardedAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

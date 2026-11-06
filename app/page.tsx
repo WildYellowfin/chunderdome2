@@ -3,7 +3,7 @@ import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { GROUP_GEAR, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
-import { bill, transportTotals, usd } from "@/lib/logistics";
+import { bill, stayLabel, transportTotals, usd, wholeWeekend } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
 import TabBar from "@/components/TabBar";
 
@@ -23,6 +23,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
   const cars = everyone.filter((p) => p.hasCar).length;
   const T = transportTotals(everyone);
   const tab = bill(me, T.share);
+  // Fuel isn't known until drivers log it after the trip, and doesn't apply to people making their own way.
+  const fuelLater = !me.ownWay && !T.total;
 
   return (
     <>
@@ -39,8 +41,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
         )}
 
         <section className="block" style={welcome ? undefined : { borderTop: 0 }}>
-          <div className="block-head"><h2 className="d d-m">Your ride</h2><span className="mono faint">Leaves 6:00 PM</span></div>
-          {driver ? (
+          <div className="block-head">
+            <h2 className="d d-m">{me.ownWay ? "Getting there" : "Your ride"}</h2>
+            <span className="mono faint">{wholeWeekend(me) ? (me.ownWay ? "" : "Leaves 6:00 PM") : stayLabel(me)}</span>
+          </div>
+          {me.ownWay ? (
+            <div className="note">
+              <strong>You&apos;re making your own way.</strong>
+              <p className="muted" style={{ margin: "4px 0 0" }}>See you at {TRIP.destination}. Changed your mind? Switch to riding or driving in your Profile.</p>
+            </div>
+          ) : driver ? (
             <div className="car">
               <div className="row spread">
                 <strong className="d d-s">{driver.phone === me.phone ? "You're driving" : `${first(driver.name)}'s car`}</strong>
@@ -82,9 +92,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           </ul>
           <div className="note ink" style={{ marginTop: 16 }}>
             <div className="mono" style={{ opacity: 0.7 }}>Your share</div>
-            <div className="d d-l" style={{ margin: "4px 0" }}>{T.total ? usd(Math.abs(tab.total)) : tab.food + tab.booze ? usd(tab.food + tab.booze) : "Free"}{T.total ? "" : " + fuel"}</div>
+            <div className="d d-l" style={{ margin: "4px 0" }}>{fuelLater ? (tab.food + tab.booze ? usd(tab.food + tab.booze) : "Free") + " + fuel" : tab.total ? usd(Math.abs(tab.total)) : "Free"}</div>
             <div style={{ fontSize: 14, opacity: 0.85 }}>
-              {!me.agreeFood ? "No food" : me.hasCar ? "Food is free, you're driving" : `$${TRIP.foodBudget} food`}{me.optInBooze ? ` + $${TRIP.boozeBudget} drinks` : ""}, plus an even share of fuel and tolls{tab.total < 0 ? ". You're owed this" : ""}. Settled up after the trip.
+              {!me.agreeFood ? "No food" : me.hasCar ? "Food is free, you're driving" : `$${TRIP.foodBudget} food`}{me.optInBooze ? ` + $${TRIP.boozeBudget} drinks` : ""}{me.ownWay ? "" : ", plus an even share of fuel and tolls"}{tab.total < 0 ? ". You're owed this" : ""}. Settled up after the trip.
             </div>
           </div>
         </section>
