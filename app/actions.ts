@@ -15,7 +15,7 @@ import {
 } from "@/lib/auth";
 import { db, getOrCreateProfile, normalizePhone, ownerPhones } from "@/lib/db";
 import { DIETARY_OPTIONS, EXTRA_GEAR, placeName } from "@/lib/trip";
-import type { Profile, Trunk } from "@/lib/types";
+import { emptyProfile, type Profile, type Trunk } from "@/lib/types";
 
 export type FormState = { error?: string; phone?: string } | undefined;
 
@@ -201,6 +201,60 @@ export async function assignRide(form: FormData) {
   await db.saveProfile({ ...p, rideWith: driver || null, updatedAt: new Date().toISOString() });
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+/** Unassign everyone riding in this person's car. */
+async function emptyCar(driver: string, now: string) {
+  for (const r of await db.listProfiles()) {
+    if (r.rideWith === driver && r.phone !== driver) await db.saveProfile({ ...r, rideWith: null, updatedAt: now });
+  }
+}
+
+// Seats include the driver; anything under 2 means not driving.
+const carFields = (p: Profile, seats: number): Partial<Profile> =>
+  seats >= 2
+    ? { hasCar: true, ownWay: false, carSeats: seats, rideWith: p.phone }
+    : { hasCar: false, carSeats: 0, rideWith: p.hasCar ? null : p.rideWith, fuelCost: 0, tollCost: 0 };
+
+/** Admin: give someone a car (or change its seats), or take it away. */
+export async function setCar(form: FormData) {
+  await requireAdmin();
+  const phone = String(form.get("phone") || "");
+  const seats = int(form.get("seats"), 0, 12, 0);
+  const p = await db.getProfile(phone);
+  if (!p) return;
+  const now = new Date().toISOString();
+  if (seats < 2 && p.hasCar) await emptyCar(phone, now);
+  await db.saveProfile({ ...p, ...carFields(p, seats), updatedAt: now });
+  revalidatePath("/", "layout");
+}
+
+export type AddState = { error?: string; added?: string; name?: string; phone?: string; seats?: string } | undefined;
+
+/** Admin: add someone who never signed up (or never finished), optionally with a car. */
+export async function addPerson(_: AddState, form: FormData): Promise<AddState> {
+  await requireAdmin();
+  const typed = { name: String(form.get("name") || ""), phone: String(form.get("phone") || ""), seats: String(form.get("seats") || "0") };
+  const name = str(typed.name, 60);
+  const phone = normalizePhone(typed.phone);
+  const seats = int(typed.seats, 0, 12, 0);
+  if (!name) return { ...typed, error: "Add their name." };
+  if (!phone) return { ...typed, error: "That doesn't look like a phone number. Try something like (415) 555-0123." };
+  const existing = await db.getProfile(phone);
+  if (existing?.onboardedAt) return { ...typed, error: `${existing.name || phone} has already signed up. Set their car under their name below.` };
+  const base = existing ?? emptyProfile(phone);
+  const now = new Date().toISOString();
+  await db.saveProfile({
+    ...base,
+    name,
+    ownWay: false,
+    agreeFood: true, // eating the group meals; free if they're driving
+    ...carFields(base, seats),
+    onboardedAt: now,
+    updatedAt: now,
+  });
+  revalidatePath("/", "layout");
+  return { added: seats >= 2 ? `Added ${name}, driving with ${seats} seats.` : `Added ${name}. Put them in a car under Seat riders.` };
 }
 
 export async function removePerson(form: FormData) {

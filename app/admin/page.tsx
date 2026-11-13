@@ -8,6 +8,8 @@ import TabBar from "@/components/TabBar";
 import AssignSelect from "@/components/AssignSelect";
 import CopyButton from "@/components/CopyButton";
 import ConfirmButton from "@/components/ConfirmButton";
+import CarSelect from "@/components/CarSelect";
+import AddPerson from "@/components/AddPerson";
 import AdminMap, { type Pin } from "@/components/AdminMap";
 import type { Profile } from "@/lib/types";
 
@@ -30,6 +32,7 @@ export default async function AdminPage() {
   const owners = ownerPhones();
   const admins = [...new Set([...owners, ...(await db.listAdmins())])];
   const nameOf = new Map(all.map((p) => [p.phone, p.name || p.phone]));
+  const ridersWith = new Map(L.cars.map((c) => [c.driver.phone, c.passengers.length]));
 
   const riders = [...L.needRide].sort((a, b) => a.area.localeCompare(b.area));
   const seatGap = L.totalSeats - L.seatsNeeded;
@@ -244,6 +247,7 @@ export default async function AdminPage() {
 
         <section className="block">
           <div className="block-head"><h2 className="d d-m">Everyone</h2><span className="mono faint">{all.length} accounts</span></div>
+          <AddPerson />
           {sorted.map((p: Profile) => (
             <div className="person" key={p.phone}>
               <div className="row spread">
@@ -255,6 +259,7 @@ export default async function AdminPage() {
                 {p.onboardedAt && <> · {p.hasCar ? `Driving (${p.carSeats})` : p.ownWay ? "Own way" : p.rideWith ? `With ${nameOf.get(p.rideWith)}` : "Needs a seat"}{p.ownWay ? "" : ` · ${p.area || "no pin"}`}{wholeWeekend(p) ? "" : ` · ${stayLabel(p)}`}</>}
               </div>
               {p.notes && <div style={{ fontSize: 15, marginTop: 4 }}>“{p.notes}”</div>}
+              {p.onboardedAt && <CarSelect phone={p.phone} name={p.name} seats={p.hasCar ? p.carSeats : 0} riders={ridersWith.get(p.phone) ?? 0} />}
               {p.phone !== me && (
                 <form action={removePerson} style={{ marginTop: 6 }}>
                   <input type="hidden" name="phone" value={p.phone} />
