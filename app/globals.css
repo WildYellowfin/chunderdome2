@@ -195,6 +195,8 @@ textarea { min-height: 96px; resize: vertical; }
 .seat.driver { background: var(--ink); }
 .seat.taken { background: var(--teal); }
 .seat.over { background: var(--red); }
+.carmates > li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; }
+.carmates a { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .person { padding: 14px 0; border-top: 1px solid var(--hair); }
 .person:first-child { border-top: 0; padding-top: 0; }
 .person select { min-height: 44px; padding: 8px 40px 8px 12px; margin-top: 8px; font-size: 16px; }

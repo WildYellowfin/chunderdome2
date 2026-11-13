@@ -6,6 +6,9 @@ import { packingList } from "@/lib/packing";
 import { bill, stayLabel, transportTotals, usd, wholeWeekend } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
 import TabBar from "@/components/TabBar";
+import CopyButton from "@/components/CopyButton";
+import GroupText from "@/components/GroupText";
+import { formatPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
 
   const driver = me.hasCar ? me : everyone.find((p) => p.phone === me.rideWith && p.hasCar);
   const carmates = driver ? everyone.filter((p) => p.rideWith === driver.phone && p.phone !== driver.phone) : [];
+  // Everyone in the car, driver first, and the numbers of everyone but me for a group chat.
+  const crew = driver ? [driver, ...carmates] : [];
+  const theirNumbers = crew.filter((p) => p.phone !== me.phone).map((p) => p.phone);
   const items = packingList(me);
   const packed = items.filter((i) => me.packed.includes(i.id)).length;
   const cars = everyone.filter((p) => p.hasCar).length;
@@ -52,18 +58,29 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
             </div>
           ) : driver ? (
             <div className="car">
-              <div className="row spread">
-                <strong className="d d-s">{driver.phone === me.phone ? "You're driving" : `${first(driver.name)}'s car`}</strong>
-                {driver.phone !== me.phone && <a className="btn sm ghost" href={`sms:${driver.phone}`}>Text</a>}
-              </div>
+              <strong className="d d-s">{driver.phone === me.phone ? "You're driving" : `${first(driver.name)}'s car`}</strong>
               <div className="seats" aria-label={`${driver.carSeats} seats`}>
-                {Array.from({ length: driver.carSeats }).map((_, i) => (
-                  <span key={i} className={`seat ${i === 0 ? "driver" : i <= carmates.length ? "taken" : ""}`} />
+                {Array.from({ length: Math.max(driver.carSeats, crew.length) }).map((_, i) => (
+                  <span key={i} className={`seat ${i === 0 ? "driver" : i < crew.length ? (i < driver.carSeats ? "taken" : "over") : ""}`} />
                 ))}
               </div>
-              {carmates.length
-                ? <p style={{ margin: 0 }}>{driver.phone !== me.phone && <>{driver.name} (driving), </>}{carmates.map((p) => p.name).join(", ")}</p>
-                : <p className="muted" style={{ margin: 0 }}>{driver.phone === me.phone ? "Riders will appear here once they're assigned." : "Just you so far."}</p>}
+              {theirNumbers.length ? (
+                <>
+                  <ul className="list carmates">
+                    {crew.map((p) => (
+                      <li key={p.phone}>
+                        <span><strong>{p.name}</strong>{p.phone === driver.phone && <span className="faint"> · driving</span>}</span>
+                        {p.phone === me.phone ? <span className="faint">You</span> : <a href={`sms:${p.phone}`}>{formatPhone(p.phone)}</a>}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="row" style={{ marginTop: 14 }}>
+                    <GroupText phones={theirNumbers} />
+                    <CopyButton text={theirNumbers.join(", ")} label="Copy numbers" />
+                  </div>
+                  <p className="hint" style={{ margin: "10px 0 0" }}>Anyone in the car can start the group chat. Copy gets everyone&apos;s number but yours.</p>
+                </>
+              ) : <p className="muted" style={{ margin: 0 }}>Riders will appear here once they&apos;re assigned.</p>}
             </div>
           ) : (
             <div className="note">
