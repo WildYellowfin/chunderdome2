@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -138,9 +139,6 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
     venmo: str(input.venmo, 40).replace(/^@/, ""),
     agreeFood: !!input.agreeFood,
     optInBooze: !!input.optInBooze,
-    fuelCost: hasCar ? profile.fuelCost : 0,
-    tollCost: hasCar ? profile.tollCost : 0,
-    groupCost: profile.groupCost || 0,
     notes: str(input.notes, 500),
     // A driver always rides in their own car; someone making their own way rides in none.
     rideWith: hasCar ? profile.phone : ownWay || profile.rideWith === profile.phone ? null : profile.rideWith,
@@ -152,19 +150,32 @@ export async function saveProfile(input: Partial<Profile>): Promise<{ error?: st
   return {};
 }
 
-const dollars = (v: FormDataEntryValue | null) => {
-  const n = Number(String(v ?? "").replace(/[$,\s]/g, ""));
-  return Number.isFinite(n) ? Math.min(2000, Math.max(0, Math.round(n * 100) / 100)) : 0;
-};
+// ---- Group expenses -------------------------------------------------------------
 
-export async function saveCosts(_: FormState, form: FormData): Promise<FormState> {
+export type ExpenseState = { error?: string; note?: string; amount?: string; added?: string } | undefined;
+
+/** Log one thing you paid for the group. */
+export async function addExpense(_: ExpenseState, form: FormData): Promise<ExpenseState> {
   const { profile } = await requireUser();
-  const driving = profile.hasCar
-    ? { fuelCost: dollars(form.get("fuel")), tollCost: dollars(form.get("tolls")) }
-    : {};
-  await db.saveProfile({ ...profile, ...driving, groupCost: dollars(form.get("group")), updatedAt: new Date().toISOString() });
+  const typed = { note: String(form.get("note") || ""), amount: String(form.get("amount") || "") };
+  const note = str(typed.note, 80);
+  const amount = Math.round(Number(typed.amount.replace(/[$,\s]/g, "")) * 100) / 100;
+  if (!note) return { ...typed, error: "Say what it was for." };
+  if (!(amount > 0)) return { ...typed, error: "Add how much it was, like 42.50." };
+  if (amount > 10000) return { ...typed, error: "That's over $10,000. Check the amount?" };
+  if (profile.expenses.length >= 100) return { ...typed, error: "That's a lot of expenses. Tell the organiser." };
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  await db.saveProfile({ ...profile, expenses: [...profile.expenses, { id, amount, note, at: now }], updatedAt: now });
   revalidatePath("/", "layout");
-  return {};
+  return { added: id };
+}
+
+export async function removeExpense(form: FormData) {
+  const { profile } = await requireUser();
+  const id = String(form.get("id") || "");
+  await db.saveProfile({ ...profile, expenses: profile.expenses.filter((e) => e.id !== id), updatedAt: new Date().toISOString() });
+  revalidatePath("/", "layout");
 }
 
 export async function togglePacked(itemId: string, done: boolean) {
@@ -214,7 +225,7 @@ async function emptyCar(driver: string, now: string) {
 const carFields = (p: Profile, seats: number): Partial<Profile> =>
   seats >= 2
     ? { hasCar: true, ownWay: false, carSeats: seats, rideWith: p.phone }
-    : { hasCar: false, carSeats: 0, rideWith: p.hasCar ? null : p.rideWith, fuelCost: 0, tollCost: 0 };
+    : { hasCar: false, carSeats: 0, rideWith: p.hasCar ? null : p.rideWith };
 
 /** Admin: give someone a car (or change its seats), or take it away. */
 export async function setCar(form: FormData) {

@@ -12,6 +12,14 @@ export interface LatLng {
   lng: number;
 }
 
+/** Something one person paid for the group: groceries, drinks, gas, tolls, ice. */
+export interface Expense {
+  id: string;
+  amount: number; // dollars, to the cent
+  note: string; // what it was for
+  at: string;
+}
+
 export interface Profile {
   phone: string; // E.164, the user id
   name: string;
@@ -42,11 +50,13 @@ export interface Profile {
   agreeFood: boolean;
   optInBooze: boolean;
 
-  // Drivers fill these in after the trip.
-  fuelCost: number;
-  tollCost: number;
-  // Anything anyone bought for the group (groceries, ice, drinks); reimbursed.
-  groupCost: number;
+  // Anything they paid for the group, one entry per expense; settled up after the trip.
+  expenses: Expense[];
+  // Before expenses were itemised: a driver's fuel and tolls, and one lump for
+  // everything else. Older profiles are folded into `expenses` when read (lib/db.ts).
+  fuelCost?: number;
+  tollCost?: number;
+  groupCost?: number;
 
   notes: string;
 
@@ -82,9 +92,7 @@ export function emptyProfile(phone: string): Profile {
     venmo: "",
     agreeFood: false,
     optInBooze: false,
-    fuelCost: 0,
-    tollCost: 0,
-    groupCost: 0,
+    expenses: [],
     notes: "",
     packed: [],
     rideWith: null,

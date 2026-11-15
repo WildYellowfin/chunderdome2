@@ -3,7 +3,7 @@ import { requireOnboarded } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { GROUP_GEAR, MEALS, TRIP } from "@/lib/trip";
 import { packingList } from "@/lib/packing";
-import { bill, stayLabel, transportTotals, usd, wholeWeekend } from "@/lib/logistics";
+import { stayLabel, wholeWeekend } from "@/lib/logistics";
 import Masthead from "@/components/Masthead";
 import TabBar from "@/components/TabBar";
 import CopyButton from "@/components/CopyButton";
@@ -27,10 +27,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
   const items = packingList(me);
   const packed = items.filter((i) => me.packed.includes(i.id)).length;
   const cars = everyone.filter((p) => p.hasCar).length;
-  const T = transportTotals(everyone);
-  const tab = bill(me, T.share);
-  // Fuel isn't known until drivers log it after the trip, and doesn't apply to people making their own way.
-  const fuelLater = !me.ownWay && !T.total;
 
   return (
     <>
@@ -107,13 +103,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
               </li>
             ))}
           </ul>
-          <div className="note ink" style={{ marginTop: 16 }}>
-            <div className="mono" style={{ opacity: 0.7 }}>Your share</div>
-            <div className="d d-l" style={{ margin: "4px 0" }}>{fuelLater ? (tab.food + tab.booze ? usd(tab.food + tab.booze) : "Free") + " + fuel" : tab.total ? usd(Math.abs(tab.total)) : "Free"}</div>
-            <div style={{ fontSize: 14, opacity: 0.85 }}>
-              {!me.agreeFood ? "No food" : me.hasCar ? "Food is free, you're driving" : `$${TRIP.foodBudget} food`}{me.optInBooze ? ` + $${TRIP.boozeBudget} drinks` : ""}{me.ownWay ? "" : ", plus an even share of fuel and tolls"}{tab.total < 0 ? ". You're owed this" : ""}. Settled up after the trip.
-            </div>
-          </div>
+          <p className="hint" style={{ margin: "14px 0 0" }}>Paid for something for the group? <Link href="/me#expenses">Add it to your expenses</Link>. We&apos;ll settle up once everything&apos;s in.</p>
         </section>
 
         <section className="block">

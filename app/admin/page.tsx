@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db, ownerPhones } from "@/lib/db";
-import { billNote, computeLogistics, stayLabel, usd, venmoLink, wholeWeekend } from "@/lib/logistics";
+import { computeLogistics, moneyCsv, stayLabel, usd, wholeWeekend } from "@/lib/logistics";
 import { CLAY_HOUSE, kmBetween, TRIP, TRUNK_OPTIONS } from "@/lib/trip";
 import { addAdmin, removeAdmin, removePerson } from "@/app/actions";
 import TabBar from "@/components/TabBar";
@@ -41,19 +41,11 @@ export default async function AdminPage() {
   const padGap = L.gear.pads.spare - L.gear.pads.need;
   const driverOptions = L.cars.map((c) => ({ phone: c.driver.phone, label: `${c.driver.name} · ${c.free} free` }));
   const sorted = [...all].sort((a, b) => (a.name || "~").localeCompare(b.name || "~"));
-  const T = L.money.transport;
+  const M = L.money;
   const pins: Pin[] = L.people.filter((p) => p.pickup).map((p) => ({
     name: p.name, lat: p.pickup!.lat, lng: p.pickup!.lng, driver: p.hasCar, seats: p.hasCar ? p.carSeats : undefined,
     sub: p.hasCar ? `Driving, ${p.carSeats} seats` : p.rideWith ? `With ${nameOf.get(p.rideWith)}` : "Needs a seat",
   }));
-
-  // Everyone settles with whoever runs admin: requests from people who owe
-  // come first, then payments to people who are owed (mostly drivers).
-  const rank = (t: number) => (t > 0 ? 0 : t < 0 ? 1 : 2);
-  const settle = [...L.money.bills].sort((a, b) => rank(a.total) - rank(b.total) || a.p.name.localeCompare(b.p.name));
-  const others = settle.filter((b) => b.p.phone !== me && b.total !== 0);
-  const collect = others.filter((b) => b.total > 0).reduce((s, b) => s + b.total, 0);
-  const payOut = others.filter((b) => b.total < 0).reduce((s, b) => s - b.total, 0);
 
   const stats: { v: string | number; l: string; t?: string }[] = [
     { v: `${L.people.length}/${TRIP.rsvps}`, l: `signed up${L.pending.length ? `, ${L.pending.length} part-way` : ""}`, t: L.people.length >= TRIP.rsvps ? "ok" : undefined },
@@ -64,7 +56,7 @@ export default async function AdminPage() {
     { v: signed(bedGap), l: `tent beds (${L.sleep.beds}) vs busiest night`, t: tone(bedGap) },
     { v: signed(bagGap), l: `bags: ${L.gear.bags.need} needed, ${L.gear.bags.spare} to lend`, t: tone(bagGap) },
     { v: signed(padGap), l: `pads: ${L.gear.pads.need} needed, ${L.gear.pads.spare} to lend`, t: tone(padGap) },
-    { v: usd(L.money.foodTotal + L.money.boozeTotal), l: `${usd(L.money.foodTotal)} food, ${usd(L.money.boozeTotal)} drinks` },
+    { v: usd(M.total), l: `group expenses, from ${M.spenders.length} ${M.spenders.length === 1 ? "person" : "people"}` },
   ];
 
   return (
@@ -206,43 +198,26 @@ export default async function AdminPage() {
         </div>
 
         <section className="block">
-          <div className="block-head"><h2 className="d d-m">Money</h2><span className="mono faint">{L.money.eaters} eating · {L.money.boozeIn} drinking</span></div>
+          <div className="block-head"><h2 className="d d-m">Money</h2><span className="mono faint">{M.count} expenses · {usd(M.total)}</span></div>
           <p className="muted" style={{ fontSize: 15 }}>
-            Fuel and tolls: {usd(T.total)} logged by {T.logged} of {T.drivers} drivers, {usd(T.share)} each across the {T.riding} people in cars. Drivers eat free, and what they spent comes off their total. People making their own way pay no transport.
+            Everything people paid for the group. Copy the CSV and paste it into Claude to work out who owes what. It has who came, which car, how much of the weekend, who ate ({M.eaters}) and drank ({M.boozeIn}) with the group, and every expense. Tell Claude about anyone who dropped out, since they&apos;re not in it.
           </p>
-          {(() => {
-            const lines = others
-              .map((b) => `${b.p.venmo ? "@" + b.p.venmo : b.p.name + " (no Venmo)"}\t${b.total < 0 ? "pay" : "request"} ${Math.abs(b.total).toFixed(2)}\t${billNote(b)}`);
-            return lines.length > 0 && (
-              <div className="row" style={{ marginBottom: 12 }}>
-                <span className="mono" style={{ flexBasis: "100%" }}>Collect {usd(collect)} · pay out {usd(payOut)}</span>
-                <CopyButton text={lines.join("\n")} label="Copy Venmo list" />
-              </div>
-            );
-          })()}
-          <ul className="list">
-            {settle.map((b) => (
-              <li key={b.p.phone}>
-                <div className="row spread" style={{ alignItems: "baseline", flexWrap: "nowrap" }}>
-                  <strong>{b.p.name}{b.p.hasCar && <span className="faint" style={{ fontWeight: 400 }}> · driver</span>}</strong>
-                  <strong className={`d d-s ${b.total < 0 ? "red" : ""}`} style={{ whiteSpace: "nowrap" }}>{b.total < 0 ? `Owed ${usd(-b.total)}` : usd(b.total)}</strong>
-                </div>
-                <div className="hint" style={{ marginTop: 2 }}>
-                  {b.p.hasCar ? "Food free" : `Food ${usd(b.food)}`}
-                  {b.booze > 0 && ` · drinks ${usd(b.booze)}`}
-                  {b.p.ownWay ? " · own way, no transport" : ` · transport ${usd(b.transport)}`}
-                  {b.spent > 0 && ` · spent\u00a0−${usd(b.spent)}`}
-                </div>
-                <div className="row" style={{ marginTop: 8, gap: 8 }}>
-                  {b.p.phone === me
-                    ? <span className="hint" style={{ margin: 0 }}>That&apos;s you</span>
-                    : b.p.venmo && b.total !== 0
-                    ? <a className="btn sm ghost" href={venmoLink(b.p.venmo, b)}>{b.total < 0 ? `Pay @${b.p.venmo} ${usd(-b.total)}` : `Request ${usd(b.total)} from @${b.p.venmo}`}</a>
-                    : <span className="hint" style={{ margin: 0 }}>{b.p.venmo ? `@${b.p.venmo}` : "No Venmo"}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="row" style={{ marginBottom: 16 }}>
+            <CopyButton text={moneyCsv(all)} label="Copy CSV for Claude" />
+          </div>
+          {M.spenders.length === 0 ? <p className="muted">No expenses logged yet.</p> : (
+            <ul className="list">
+              {M.spenders.map(({ p, total }) => (
+                <li key={p.phone}>
+                  <div className="row spread" style={{ alignItems: "baseline", flexWrap: "nowrap" }}>
+                    <strong>{p.name}<span className="faint" style={{ fontWeight: 400 }}>{p.venmo ? ` · @${p.venmo}` : " · no Venmo"}</span></strong>
+                    <strong className="d d-s" style={{ whiteSpace: "nowrap" }}>{usd(total)}</strong>
+                  </div>
+                  <div className="hint" style={{ marginTop: 2 }}>{p.expenses.map((e) => `${e.note} ${usd(e.amount)}`).join(" · ")}</div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="block">

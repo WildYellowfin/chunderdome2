@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { requireOnboarded } from "@/lib/auth";
-import { signOut } from "@/app/actions";
-import { db } from "@/lib/db";
-import { bill, inCars, satNight, sleepsOver, stayLabel, transportTotals, usd } from "@/lib/logistics";
+import { removeExpense, signOut } from "@/app/actions";
+import { inCars, satNight, sleepsOver, spent, stayLabel, usd } from "@/lib/logistics";
 import { BRING_GEAR, LEND_GEAR, RETURN_OPTIONS, TRUNK_OPTIONS } from "@/lib/trip";
 import TabBar from "@/components/TabBar";
-import Costs from "@/components/Costs";
+import AddExpense from "@/components/AddExpense";
+import ConfirmButton from "@/components/ConfirmButton";
 
 const time12 = (t: string) => {
   const [h, m] = t.split(":").map(Number);
@@ -15,9 +15,7 @@ const BAG = { bag: "Own sleeping bag", blanket: "Bringing blankets", need: "Borr
 
 export default async function MePage() {
   const { profile: p, admin } = await requireOnboarded();
-  const people = (await db.listProfiles()).filter((x) => x.onboardedAt);
-  const T = transportTotals(people);
-  const b = bill(p, T.share);
+  const total = spent(p);
   const lending = [
     ...LEND_GEAR.filter((g) => (p.extras[g.key] || 0) > 0).map((g) => `${g.label} ×${p.extras[g.key]}`),
     ...(p.tents || []).map((s) => `Tent for ${s}`),
@@ -49,16 +47,25 @@ export default async function MePage() {
           </ul>
           <Link className="btn block-btn" href="/me/edit" style={{ marginTop: 20 }}>Edit my answers</Link>
         </section>
-        <section className="block">
-          <h2 className="d d-m" style={{ marginBottom: 12 }}>Your tab</h2>
-          <ul className="list">
-            <li className="row spread"><span>Food</span><span>{!p.agreeFood ? "Not eating with us" : p.hasCar ? "Free, you're driving" : usd(b.food)}</span></li>
-            {b.booze > 0 && <li className="row spread"><span>Drinks</span><span>{usd(b.booze)}</span></li>}
-            <li className="row spread"><span>Fuel and tolls share</span><span>{p.ownWay ? "None, own way" : T.total ? usd(b.transport) : "After the trip"}</span></li>
-            {b.spent > 0 && <li className="row spread"><span>Group expenses</span><span>−{usd(b.spent)}</span></li>}
-            <li className="row spread"><strong>{b.total < 0 ? "You're owed" : "Total"}</strong><strong className="d d-s">{usd(Math.abs(b.total))}</strong></li>
-          </ul>
-          <Costs driver={p.hasCar} fuel={p.fuelCost || 0} tolls={p.tollCost || 0} group={p.groupCost || 0} />
+        <section className="block" id="expenses">
+          <div className="block-head"><h2 className="d d-m">Group expenses</h2>{total > 0 && <span className="d d-s">{usd(total)}</span>}</div>
+          <p className="hint" style={{ margin: "0 0 14px" }}>Anything you paid for the group: food, drinks, gas, tolls, ice. Add each one and we&apos;ll do the adding up. Settling up comes after the trip.</p>
+          {p.expenses.length > 0 && (
+            <ul className="list expenses">
+              {p.expenses.map((e) => (
+                <li key={e.id}>
+                  <span>{e.note}</span>
+                  <span className="amt">{usd(e.amount)}</span>
+                  <form action={removeExpense}>
+                    <input type="hidden" name="id" value={e.id} />
+                    <ConfirmButton label="Remove" confirm={`Remove ${e.note}, ${usd(e.amount)}?`} />
+                  </form>
+                </li>
+              ))}
+              <li className="total"><strong>Total</strong><strong className="amt">{usd(total)}</strong></li>
+            </ul>
+          )}
+          <AddExpense first={p.expenses.length === 0} />
         </section>
         <section className="block">
           <form action={signOut}><button className="btn ghost block-btn">Sign out</button></form>

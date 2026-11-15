@@ -7,7 +7,7 @@ A small Next.js app for planning the Chunderdome II camping trip to Dillon Beach
 **For everyone**
 - Sign in with a phone number (SMS code via Twilio Verify, or a shared trip code).
 - Six-step onboarding: name, and (only if they tick it) which part of the weekend they can make; how they're getting there (ride with the group, drive and take people, or make their own way), with a pickup pin on a drag-to-place map centred on Clay House (1473 Clay St) for anyone in the cars, car size and trunk space for drivers, and when they need to be home Sunday; sleeping bag and pad, gear to lend (bags, pads, tents with sizes), essential and useful gear they're bringing, dietary needs, optional Venmo, and the $35 food budget (free for drivers) plus an optional $20 booze kitty.
-- Drivers log fuel and tolls under Me after the trip; transport is split evenly across everyone in the cars, drivers included. People making their own way pay no transport.
+- Group expenses under Profile: anyone logs what they paid for the group (groceries, drinks, gas, tolls, ice) one item at a time, with what it was for, and sees the running total. Who owes what is worked out after the trip.
 - Trip home page: illustrated map, countdown, itinerary, meal plan, their car and the crew. Once they're in a car, everyone in it (driver or rider) sees each carmate's name and number, with a group text button and a copy-numbers button so anyone can start the car's group chat.
 - A packing list built from their answers that they tick off as they go.
 
@@ -18,7 +18,7 @@ A small Next.js app for planning the Chunderdome II camping trip to Dillon Beach
 - A pickups map with every pin (drivers with seat counts), plus people and seats by neighbourhood.
 - Sunday return times, including who needs to be back early.
 - Gear: sleeping bags and pads needed vs lent, tent beds vs people, headlamps and chairs vs headcount, and who's bringing what.
-- Dietary roll-up, and a money table with food, booze, transport share, and each person's total (drivers can come out owed).
+- Dietary roll-up, and every group expense by who paid it. "Copy CSV for Claude" copies one row per person (car, how much of the weekend, eating, drinking, what they spent and on what) to paste into Claude and work out who owes what.
 - Copy every phone number for a group text, download everything as CSV.
 - Add or remove admins. Owners (from `OWNER_PHONES`) can't be removed.
 

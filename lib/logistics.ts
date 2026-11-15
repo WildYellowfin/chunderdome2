@@ -1,4 +1,5 @@
 import { ARRIVE_OPTIONS, BRING_GEAR, CLAY_HOUSE, kmBetween, LEND_GEAR, TRIP } from "./trip";
+import { toCsv } from "./csv";
 import type { Profile } from "./types";
 
 // ---- Who's there when ---------------------------------------------------------
@@ -26,24 +27,8 @@ export interface CarSummary {
   free: number;
 }
 
-/** What one person owes (positive) or is owed (negative). */
-// People making their own way pay for their own petrol and stay out of the cars' split.
-export function bill(p: Profile, transportShare: number) {
-  const food = p.agreeFood && !p.hasCar ? TRIP.foodBudget : 0;
-  const booze = p.optInBooze ? TRIP.boozeBudget : 0;
-  const transport = inCars(p) ? transportShare : 0;
-  const spent = (p.hasCar ? (p.fuelCost || 0) + (p.tollCost || 0) : 0) + (p.groupCost || 0);
-  const total = food + booze + transport - spent;
-  return { food, booze, transport, spent, total: Math.round(total * 100) / 100 };
-}
-
-export function transportTotals(people: Profile[]) {
-  const drivers = people.filter((p) => p.hasCar);
-  const riding = people.filter(inCars).length;
-  const total = drivers.reduce((s, d) => s + (d.fuelCost || 0) + (d.tollCost || 0), 0);
-  const logged = drivers.filter((d) => (d.fuelCost || 0) + (d.tollCost || 0) > 0).length;
-  return { total, logged, drivers: drivers.length, riding, share: riding ? total / riding : 0 };
-}
+/** What someone paid for the group, to the cent. */
+export const spent = (p: Pick<Profile, "expenses">) => Math.round(p.expenses.reduce((s, e) => s + e.amount, 0) * 100) / 100;
 
 /** Seats offered vs people who need one, leaving out whoever is asking. */
 export function seatCount(people: Profile[], except: string) {
@@ -115,17 +100,17 @@ export function computeLogistics(all: Profile[]) {
   const beds = TRIP.tentCapacity + TRIP.groupSmallTentBeds + spareTentBeds;
   const sleepers = Math.max(weekend.friNight.length, weekend.satNight.length);
 
-  // Money
-  const transport = transportTotals(people);
-  const bills = people.map((p) => ({ p, ...bill(p, transport.share) }));
+  // Money: what each person paid for the group. Who owes what is worked out after the trip.
+  const spenders = people
+    .filter((p) => p.expenses.length)
+    .map((p) => ({ p, total: spent(p) }))
+    .sort((a, b) => b.total - a.total);
   const money = {
     eaters: people.filter((p) => p.agreeFood).length,
     boozeIn: people.filter((p) => p.optInBooze).length,
-    foodTotal: bills.reduce((s, b) => s + b.food, 0),
-    boozeTotal: bills.reduce((s, b) => s + b.booze, 0),
-    transport,
-    bills,
-    noVenmo: people.filter((p) => !p.venmo.trim()),
+    spenders,
+    count: spenders.reduce((s, x) => s + x.p.expenses.length, 0),
+    total: Math.round(spenders.reduce((s, x) => s + x.total, 0) * 100) / 100,
   };
 
   // Diet
@@ -161,25 +146,27 @@ export function computeLogistics(all: Profile[]) {
   };
 }
 
-/** What a bill is for, as a Venmo note. */
-export function billNote(b: ReturnType<typeof bill>) {
-  const parts = [b.food ? `food ${usd(b.food)}` : "", b.booze ? `drinks ${usd(b.booze)}` : "", b.transport ? `fuel+tolls ${usd(b.transport)}` : "", b.spent ? `minus ${usd(b.spent)} you spent` : ""].filter(Boolean);
-  return `Chunderdome II: ${parts.join(", ")}`;
-}
-
 /**
- * A Venmo link with the person, amount and note filled in. On a phone with
- * Venmo installed it opens the app; elsewhere it opens venmo.com.
- * Positive totals are requests (they owe you); negative ones are payments.
+ * One row per person with what settling up needs: how they got there, which
+ * car, how much of the weekend, whether they ate and drank with the group, and
+ * every expense they logged. Small enough to paste into a chat with Claude.
  */
-export function venmoLink(handle: string, b: ReturnType<typeof bill>) {
-  const q = new URLSearchParams({
-    txn: b.total < 0 ? "pay" : "charge",
-    audience: "private",
-    recipients: handle,
-    amount: Math.abs(b.total).toFixed(2),
-    note: billNote(b),
-  });
-  // Venmo shows a literal "+" in notes, so encode spaces as %20.
-  return `https://venmo.com/?${q.toString().replace(/\+/g, "%20")}`;
+export function moneyCsv(all: Profile[]) {
+  const people = all.filter((p) => p.onboardedAt).sort((a, b) => a.name.localeCompare(b.name));
+  const nameOf = new Map(all.map((p) => [p.phone, p.name]));
+  const yn = (b: boolean) => (b ? "yes" : "no");
+  return toCsv([
+    ["name", "venmo", "getting_there", "car", "weekend", "eating", "drinking", "spent_usd", "expenses"],
+    ...people.map((p) => [
+      p.name,
+      p.venmo, // without the @, which spreadsheets read as a formula
+      p.hasCar ? "driving" : p.ownWay ? "own way" : "riding",
+      p.ownWay ? "" : (p.rideWith && nameOf.get(p.rideWith)) || "",
+      stayLabel(p),
+      yn(p.agreeFood),
+      yn(p.optInBooze),
+      spent(p).toFixed(2),
+      p.expenses.map((e) => `${e.note} ${e.amount.toFixed(2)}`).join("; "),
+    ]),
+  ]);
 }

@@ -112,8 +112,18 @@ if (!url && process.env.VERCEL) {
 
 const raw: Store = url && token ? redisStore(new Redis({ url, token })) : fileStore();
 
-// Profiles saved by older versions of the form lack newer fields; fill them in.
-const fill = (p: Profile): Profile => ({ ...emptyProfile(p.phone), ...p });
+// Profiles saved by older versions of the form lack newer fields; fill them in,
+// and turn the old fuel / tolls / group lump sums into expense entries. Only a
+// driver's fuel and tolls ever counted, so the same goes here. The ids are
+// stable, so an entry can be removed before the profile is next saved.
+const fill = (p: Profile): Profile => {
+  const { fuelCost, tollCost, groupCost, ...rest } = { ...emptyProfile(p.phone), ...p };
+  if (Array.isArray(p.expenses)) return rest;
+  const at = p.updatedAt || new Date().toISOString();
+  const legacy: [string, number | undefined][] = [["Fuel", p.hasCar ? fuelCost : 0], ["Tolls", p.hasCar ? tollCost : 0], ["Group expenses", groupCost]];
+  const expenses = legacy.filter(([, n]) => (n || 0) > 0).map(([note, n], i) => ({ id: `legacy-${i}`, amount: n!, note, at }));
+  return { ...rest, expenses };
+};
 export const db: Store = {
   ...raw,
   async getProfile(phone) {
